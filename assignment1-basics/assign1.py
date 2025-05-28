@@ -15,7 +15,7 @@ from priority_dict import PriorityDict
 
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 
-    
+
 def find_chunk_boundaries(
     file: BinaryIO, 
     desired_num_chunks: int, 
@@ -76,7 +76,7 @@ def initialize_occurrence_pair(vocab:dict[tuple[bytes], int]) -> tuple[defaultdi
             pairsfreq[symbols[i], symbols[i+1]] += freq
             pair2symbols[symbols[i], symbols[i+1]].add(symbols)
     return pairsfreq, pair2symbols
-    
+
 def process_chunk(chuck: tuple[int], 
                   input_path: str, 
                   special_tokens: list[str]) -> Counter:
@@ -114,7 +114,7 @@ def train_bpe(input_path: str,
     initial_vocab_size = len(vocab)
     merges : list[tuple[bytes, bytes]] = []
     vocab_counter : dict[tuple[bytes], int] = Counter()
-    
+
     # 2. 预分词(pre-tokenization)
     t0 = time.time()
     boundaries = []
@@ -127,7 +127,7 @@ def train_bpe(input_path: str,
                 functools.partial(process_chunk, input_path=input_path, special_tokens=special_tokens), 
                 zip(boundaries[:-1], boundaries[1:]),
             )
-        
+
         for res in results:
             vocab_counter.update(res)
     t2 = time.time()
@@ -136,18 +136,20 @@ def train_bpe(input_path: str,
         new_elem = (pair[0])+(pair[1])
         vocab.update({len(vocab): new_elem})
         merges.append(pair)
-    
+
     occur_pair_freq, pair2symbols = initialize_occurrence_pair(vocab_counter)
 
     def merge_pair(symbol: tuple[bytes], pair:tuple[bytes], pair_bytes: bytes, freq: int) -> tuple[bytes]:
         ret = []
         i = 0
         n = len(symbol)
-        remove_pairs = []
-
+        new_pairs = []
+        prev_elem = None
+        curr_elem = None
         while i < n:
+            # 删除旧symbol
             if i < n - 1:
-                remove_pairs.append((symbol[i], symbol[i+1]))
+                pair2symbols[(symbol[i], symbol[i+1])].discard(symbol)
             
             if i < n - 1 and (symbol[i], symbol[i+1]) == pair:
                 if i > 0:
@@ -156,23 +158,24 @@ def train_bpe(input_path: str,
                 if i < n - 2:
                     occur_pair_freq[symbol[i+1], symbol[i+2]] -= freq
                     occur_pair_freq[pair_bytes, symbol[i+2]] += freq
-                ret.append(pair_bytes)
-                i += 2 
+                curr_elem = pair_bytes
+                i += 2
             else:
-                ret.append(symbol[i])
+                curr_elem = symbol[i]
                 i += 1
             
+            ret.append(curr_elem)
+            if prev_elem:
+                new_pairs.append((prev_elem, curr_elem))
+            prev_elem = curr_elem
+        
         new_symbol = tuple(ret)
-
-        for i in range(len(new_symbol)-1):
-            pair2symbols[new_symbol[i], new_symbol[i+1]].add(new_symbol)
-        for p in remove_pairs:
-            pair2symbols[p].discard(symbol)
+        for p in new_pairs:
+            pair2symbols[p].add(new_symbol)
         return new_symbol
 
     print("occur_pair:", len(occur_pair_freq))
     print("vocab_counter:", len(vocab_counter))
-    return None
     t3 = time.time()
     best_pair, _ = occur_pair_freq.pop()
     while len(vocab) < vocab_size:
@@ -190,7 +193,7 @@ def train_bpe(input_path: str,
             new_symbol = merge_pair(symbol, best_pair, best_pair_bytes, freq)
             new_vocab[new_symbol] = freq
             del_keys.add(symbol)
-        
+
         vocab_counter.update(new_vocab)
         for k in del_keys:
             del vocab_counter[k]
@@ -204,4 +207,4 @@ def train_bpe(input_path: str,
 
 if __name__ == "__main__":
     # train_bpe('/home/mocibb/cs336/assignment1-basics/bpe_text.txt', 10, ['<|endoftext|>'])
-    train_bpe('/home/mocibb/cs336/assignment1-basics/data/TinyStoriesV2-GPT4-train.txt', 10000, ['<|endoftext|>'])
+    train_bpe('/home/mocibb/cs336/assignment1-basics/data/TinyStoriesV2-GPT4-valid.txt', 10000, ['<|endoftext|>'])
