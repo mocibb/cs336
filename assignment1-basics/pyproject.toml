@@ -30,6 +30,10 @@ include = ["cs336_basics"]
 package = true
 python-preference = "managed"
 
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = "WARNING"
