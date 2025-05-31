@@ -1,13 +1,10 @@
 import torch
 
 class RMSNorm(torch.nn.Module):
-    def __init__(self, d_model: int, eps: float = 1e-5, weights=None, device=None, dtype=None):
+    def __init__(self, d_model: int, eps: float = 1e-5, device=None, dtype=None):
         super().__init__()
         self.eps = eps
-        if weights is not None:
-            self.weights = torch.nn.Parameter(weights)
-        else:
-            self.weights = torch.nn.Parameter(torch.ones(d_model, device=device, dtype=dtype))
+        self.weights = torch.nn.Parameter(torch.ones(d_model, device=device, dtype=dtype))
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         in_dtype = x.dtype
