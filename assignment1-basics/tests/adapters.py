@@ -33,7 +33,7 @@ def run_linear(
         Float[Tensor, "... d_out"]: The transformed output of your linear module.
     """
     linear = Linear(d_in, d_out)
-    linear.weights.data = weights
+    linear.weight.data = weights
     return linear.forward(in_features)
 
 
@@ -56,7 +56,7 @@ def run_embedding(
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
     embedding = Embedding(vocab_size, d_model)
-    embedding.weights.data = weights
+    embedding.weight.data = weights
     return embedding.forward(token_ids)
 
 
@@ -90,9 +90,9 @@ def run_swiglu(
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
     swiglu = SwiGLU(d_model, d_ff)
-    swiglu.w1.data = w1_weight
-    swiglu.w2.data = w2_weight
-    swiglu.w3.data = w3_weight
+    swiglu.w1.weight.data = w1_weight
+    swiglu.w2.weight.data = w2_weight
+    swiglu.w3.weight.data = w3_weight
     return swiglu.forward(in_features)
 
 
@@ -149,7 +149,17 @@ def run_multihead_self_attention(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    return multihead_self_attention(d_model, num_heads, q_proj_weight, k_proj_weight, v_proj_weight, o_proj_weight, in_features)
+    multihead = MultiheadSelfAttention(
+        d_model=d_model,
+        num_heads=num_heads
+    )
+    
+    multihead.q_proj.weight.data = q_proj_weight
+    multihead.k_proj.weight.data = k_proj_weight
+    multihead.v_proj.weight.data = v_proj_weight
+    multihead.output_proj.weight.data = o_proj_weight
+    
+    return multihead.forward(in_features)
 
 
 def run_multihead_self_attention_with_rope(
@@ -189,7 +199,23 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+
+    multihead = MultiheadSelfAttention(
+        d_model=d_model,
+        num_heads=num_heads,
+        max_seq_len=max_seq_len,
+        theta=theta,
+        device=None,
+        dtype=None,
+        apply_rope=True
+    )
+    
+    multihead.q_proj.weight.data = q_proj_weight
+    multihead.k_proj.weight.data = k_proj_weight
+    multihead.v_proj.weight.data = v_proj_weight
+    multihead.output_proj.weight.data = o_proj_weight
+    
+    return multihead.forward(in_features)
 
 
 def run_rope(
@@ -284,7 +310,9 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    block = TransformerBlock(d_model, num_heads, d_ff, max_seq_len, theta)
+    block.load_state_dict(weights)
+    return block.forward(in_features)
 
 
 def run_transformer_lm(
@@ -390,7 +418,7 @@ def run_rmsnorm(
         RMSNorm of the `in_features`.
     """
     rmsnorm = RMSNorm(d_model, eps)
-    rmsnorm.weights.data = weights
+    rmsnorm.weight.data = weights
     return rmsnorm.forward(in_features)
 
 
