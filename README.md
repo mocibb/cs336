@@ -51,10 +51,9 @@ CS336的授课教师也给出了自己实现大模型的目的，
 - [kkaitlyn的作业](https://github.com/kkaitlyn111/cs336-assignment1)
 
 ## 如何跑起第一次作业
-1. 安装uv
-
-   参考 https://docs.astral.sh/uv/getting-started/installation/
-3. 运行作业一的测试程序
+1. 安装uv<br/>
+   建议通过uv的官方安装最新的版本 https://docs.astral.sh/uv/getting-started/installation/
+2. 运行作业一的测试程序
 ```sh
 uv run pytest tests/test_train_bpe.py
 ```
