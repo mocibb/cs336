@@ -1,12 +1,19 @@
 # Stanford CS336 作业项目
 
 ## 介绍 
-本Repo是用来提供CS336作业学习讨论的地方。
+本Repo提供CS336作业学习交流的地方。
 
 CS336是斯坦福大学在2025年开设的从零到一实现大语言模型的课程。
 
+现在大模型是资金和人才最密集的领域。即便不做大模型从学习和发展的角度都有必要参与，不愿意技术上的旁观者。
+
+CS336的授课教师也给出了自己实现大模型的目的，
+
+> Full understanding of this technology is necessary for fundamental research.
+
+
 整个课程包括五次作业，通过五次作业可以了解到现代大语言模型的各个方面：
-![image](https://github.com/user-attachments/assets/ac896cc4-3a4f-4e61-8824-8fa906b50fce)
+<img src="https://github.com/user-attachments/assets/ac896cc4-3a4f-4e61-8824-8fa906b50fce" alt="drawing" width="600"/>
 
 ## 作业介绍
 ### 作业一
@@ -39,14 +46,15 @@ CS336是斯坦福大学在2025年开设的从零到一实现大语言模型的�
 * 群体相对偏好优化实现
 
 ## 课程资源
-[课程主页](https://stanford-cs336.github.io/spring2025/)
-[Modded-NanoGPT](https://github.com/KellerJordan/modded-nanogpt)
-[kkaitlyn的作业](https://github.com/kkaitlyn111/cs336-assignment1)
+- [课程主页](https://stanford-cs336.github.io/spring2025/)
+- [Modded-NanoGPT](https://github.com/KellerJordan/modded-nanogpt)
+- [kkaitlyn的作业](https://github.com/kkaitlyn111/cs336-assignment1)
 
 ## 如何跑起第一次作业
 1. 安装uv
+
    参考 https://docs.astral.sh/uv/getting-started/installation/
-2. 运行作业一的测试程序
+3. 运行作业一的测试程序
 ```sh
 uv run pytest tests/test_train_bpe.py
 ```
