@@ -20,7 +20,7 @@ CS336的授课教师也给出了自己实现大模型的目的，
 * 实现BPE分词器‌
 * 实现Transformer模型、交叉熵损失函数、AdamW优化器及训练循环‌
 * TinyStories和OpenWebText数据集上进行训练‌
-* 打榜：在H100上给定90分钟内最小化OpenWebText的困惑度‌
+* 打榜：在H100上给定90分钟内最小化OpenWebText的perplexity
 
 ### 作业二
 * 在Triton中实现一个融合的RMSNorm内核‌
