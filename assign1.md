@@ -39,7 +39,8 @@
 
 ### AdamW
 
-
+### Muon
+https://kellerjordan.github.io/posts/muon/
 
 ### 学习率调度(learning_rate_tuning)
 
