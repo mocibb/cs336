@@ -16,7 +16,7 @@ class Linear(torch.nn.Module):
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # y = W x
-        return einsum(self.weight, x, "out_features in_features, ... in_features -> ... out_features")
+        return einsum(self.weight, x, "m n, ... n -> ... m")
 
 class Embedding(torch.nn.Module):
     def __init__(self, num_embeddings, embedding_dim, device=None, dtype=None):
@@ -70,7 +70,7 @@ class RotaryPositionalEmbedding(torch.nn.Module):
         
         # 缓存三角函数表
         idx = torch.arange(max_seq_len, device=device)
-        theta_table : Float[Tensor, "max_seq_len half_dim"] = torch.outer(idx, inv_freq) 
+        theta_table = torch.outer(idx, inv_freq) 
         self.register_buffer('sin', theta_table.sin(), persistent=False)
         self.register_buffer('cos', theta_table.cos(), persistent=False)
     
@@ -94,7 +94,7 @@ def softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ...
 def scaled_dot_product_attention(Q: Float[Tensor, "... n d_k"],
                                  K: Float[Tensor, "... m d_k"],
                                  V: Float[Tensor, "... m d_v"],
-                                 mask: Float[Tensor, "seq_len seq_len"] | None = None ) -> Float[Tensor, "... d_v"]:
+                                 mask: Float[Tensor, "s s"] | None = None ) -> Float[Tensor, "... d_v"]:
     d_k = Q.size(-1)
     scores = einsum(Q, K, "... n d_k, ... m d_k -> ... n m") / sqrt(d_k)
     
@@ -133,17 +133,17 @@ class MultiheadSelfAttention(torch.nn.Module):
 
         Q, K, V = (
             rearrange(X(x),
-                    "... s (h d) -> ... h s d", h=self.num_heads)
+                    "b s (h d) -> b h s d", h=self.num_heads)
                     for X in (self.q_proj, self.k_proj, self.v_proj)
         )  
 
         if self.rope is not None:
-            positions = rearrange(torch.arange(seq_len, device=x.device), "seq -> 1 seq").expand(batch_size, -1)
+            positions = rearrange(torch.arange(seq_len, device=x.device), "s -> 1 s").expand(batch_size, -1)
             Q = self.rope(Q, positions)
             K = self.rope(K, positions)
 
         mask = torch.tril(torch.ones(seq_len, seq_len, dtype=torch.bool, device=x.device)).expand(batch_size, self.num_heads, -1, -1)
-        attn_output = rearrange(scaled_dot_product_attention(Q, K, V, mask), " ... h s d_v -> ... s (h d_v)")
+        attn_output = rearrange(scaled_dot_product_attention(Q, K, V, mask), "b h s d_v -> b s (h d_v)")
         
         return self.output_proj(attn_output)
     
@@ -179,16 +179,15 @@ class TransformerBlockLM(torch.nn.Module):
                  dtype: torch.dtype | None = None):
         super().__init__()
 
-        self.context_length = context_length
-        self.token_embeddings = Embedding(vocab_size, d_model, device)
+        self.token_embeddings = Embedding(vocab_size, d_model, device, dtype)
         self.layers = torch.nn.ModuleList(
-            [ TransformerBlock(d_model, num_heads, d_ff, context_length, rope_theta) for _ in range(num_layers) ]
+            [ TransformerBlock(d_model, num_heads, d_ff, context_length, rope_theta, device=device) for _ in range(num_layers) ]
         )
-        self.ln_final = RMSNorm(d_model)
-        self.lm_head = Linear(d_model, vocab_size)
+        self.ln_final = RMSNorm(d_model, device=device, dtype=dtype)
+        self.lm_head = Linear(d_model, vocab_size, device=device, dtype=dtype)
 
 
-    def forward(self, in_indices: Int[Tensor, " batch_size sequence_length"]) -> Float[Tensor, " batch_size sequence_length vocab_size"]:
+    def forward(self, in_indices: torch.Tensor) -> torch.Tensor:
         x = self.token_embeddings(in_indices)
         for layer in self.layers:
             x = layer(x)
