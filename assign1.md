@@ -13,12 +13,16 @@
 词汇大小
 <img src="https://github.com/user-attachments/assets/4526866f-c433-4f4b-8e66-da5c7e25b8f6" alt="vocab" width="600"/>
 
+### BPE算法
+基本操作
+1. 选择最高的pair
+2. 合并pair，并更新pair出现次数
 
 ## 模型
 ### RMSNorm
-
+1. Data Movement Is All You Need
+2. Root Mean Square Layer Normalization
 ### SwiGLU
-
 
 ### Serial vs Parallel layers
 
