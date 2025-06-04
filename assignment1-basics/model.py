@@ -7,8 +7,8 @@ from torch import Tensor
 class Linear(torch.nn.Module):
     def __init__(self, in_features, out_features, device=None, dtype=None):
         super().__init__()
-                
-        weight = torch.empty(in_features, out_features, 
+        #
+        weight = torch.empty(out_features, in_features, 
                              device=device, dtype=dtype)
         sigma = sqrt(2/(in_features+out_features))
         torch.nn.init.trunc_normal_(weight, std=sigma, a=-3.0*sigma, b=3.0*sigma)
@@ -21,6 +21,7 @@ class Linear(torch.nn.Module):
 class Embedding(torch.nn.Module):
     def __init__(self, num_embeddings, embedding_dim, device=None, dtype=None):
         super().__init__()
+
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
         
@@ -35,6 +36,7 @@ class Embedding(torch.nn.Module):
 class RMSNorm(torch.nn.Module):
     def __init__(self, d_model: int, eps: float = 1e-5, device=None, dtype=None):
         super().__init__()
+
         self.eps = eps
         self.weight = torch.nn.Parameter(torch.ones(d_model, device=device, dtype=dtype))
     
@@ -50,9 +52,9 @@ class SwiGLU(torch.nn.Module):
     def __init__(self, d_model, d_ff, device=None, dtype=None):
         super().__init__()
 
-        self.w1 = Linear(d_ff, d_model)
-        self.w2 = Linear(d_model, d_ff)
-        self.w3 = Linear(d_ff, d_model)
+        self.w1 = Linear(d_model, d_ff)
+        self.w2 = Linear(d_ff, d_model)
+        self.w3 = Linear(d_model, d_ff)
         self.silu = lambda x: x * torch.sigmoid(x)
         
     def forward(self, x):
@@ -162,3 +164,34 @@ class TransformerBlock(torch.nn.Module):
         x = self.attn(x)
         y = in_features + x
         return y + self.ffn(self.ln2(y))
+    
+
+class TransformerBlockLM(torch.nn.Module):
+    def __init__(self,  
+                 vocab_size: int, 
+                 context_length: int, 
+                 d_model: int, 
+                 num_layers: int, 
+                 num_heads: int, 
+                 d_ff: int, 
+                 rope_theta: float,
+                 device: torch.device | None = None,
+                 dtype: torch.dtype | None = None):
+        super().__init__()
+
+        self.context_length = context_length
+        self.token_embeddings = Embedding(vocab_size, d_model, device)
+        self.layers = torch.nn.ModuleList(
+            [ TransformerBlock(d_model, num_heads, d_ff, context_length, rope_theta) for _ in range(num_layers) ]
+        )
+        self.ln_final = RMSNorm(d_model)
+        self.lm_head = Linear(d_model, vocab_size)
+
+
+    def forward(self, in_indices: Int[Tensor, " batch_size sequence_length"]) -> Float[Tensor, " batch_size sequence_length vocab_size"]:
+        x = self.token_embeddings(in_indices)
+        for layer in self.layers:
+            x = layer(x)
+        x = self.ln_final(x)
+        x = self.lm_head(x)
+        return x

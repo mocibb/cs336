@@ -1,6 +1,6 @@
 from train_bpe import train_bpe
 from tokenizer import Tokenizer
-from model import Linear, Embedding, RMSNorm, SwiGLU, RotaryPositionalEmbedding, MultiheadSelfAttention, TransformerBlock
+from model import Linear, Embedding, RMSNorm, SwiGLU, RotaryPositionalEmbedding, MultiheadSelfAttention, TransformerBlock, TransformerBlockLM
 from model import softmax, scaled_dot_product_attention
 import torch
 from torch import Tensor
@@ -18,7 +18,8 @@ __all__ = ['train_bpe',
            'softmax',
            'scaled_dot_product_attention',
            'MultiheadSelfAttention',
-           'TransformerBlock'
+           'TransformerBlock',
+           'TransformerBlockLM'
            ]
 
 def silu(x: Float[Tensor, " ..."]) -> Float[Tensor, " ..."]:
