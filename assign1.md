@@ -45,3 +45,8 @@ https://kellerjordan.github.io/posts/muon/
 ### 学习率调度(learning_rate_tuning)
 
 ## 实验
+
+### Trick
+https://gist.github.com/ZijiaLewisLu/eabdca955110833c0ce984d34eb7ff39?permalink_comment_id=3417135
+1. 使用 numpy.memmap(), array = numpy.array(memmap_file)
+2. 
