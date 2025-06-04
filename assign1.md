@@ -4,7 +4,7 @@
 
 压缩率 = 字节数/token数 
 
-常见算法包括: BPE和bert分词
+常见算法包括: BPE，Unigram和WordPiece。
 
 - [openai](https://platform.openai.com/tokenizer)
 - [tiktokenizer比较](https://tiktokenizer.vercel.app/)
