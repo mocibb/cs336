@@ -34,10 +34,29 @@
 #### 输出Softmax稳定性z-loss
 #### QK Norm
 
+### Attention heads
+
+#### GQA / MQA (KV Cache)
+
+#### 
+
 ### The Full Transformer LM资源计算表
 [计算器](https://docs.google.com/spreadsheets/d/1LebxBI5lkoNdMFEBIOIEnHylSvvzoC8xvWMBcXwjy7U/edit?usp=sharing)
 
 ## 训练
+
+### Cross-entropy loss
+交叉熵的输入inputs是下一次要接龙的单词的概率，它是由我们模型得到的预测值，注意是没有过Softmax。 
+
+inputs的大小是 $D\times V$ 张量，其中 $D$ 是batch数目， $V$ 为词汇数目。通过softmax给出由inputs预测下一个单词的概率，
+
+$p_\theta\left(x_{i+1} \mid x_{1: i} \right)=\frac{\exp\left( \text{input}[x_i] \right)}{\sum_a \exp\left(\text{input}[a]\right) }$
+
+targets是真实的下一次要接龙的单词，为 $\hat{x}\_{i+1}$
+
+总的交叉熵为，
+
+$\ell(\theta ; D)=-\frac{1}{|D|} \sum_{x \in D} \log p_\theta\left(x_{i+1} = \hat{x}\_{i+1} \mid x_{1: i}\right) $
 
 ### The SGD Optimizer
 
