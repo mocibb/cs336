@@ -19,20 +19,20 @@
 2. 合并pair，并更新pair出现次数
 
 ## 模型
-### RMSNorm
+### Pre-vs-post Norm
+减小梯度Norm的跳动
+### LayerNorm vs RMSNorm
 1. Data Movement Is All You Need
 2. Root Mean Square Layer Normalization
-### SwiGLU
-
-### Serial vs Parallel layers
+### Gating, activations
 
 ### RoPE
 
 ### Hyperparameters
 
-### Dropout and other regularization
-
-### GQA/MQA
+### Softmax稳定性问题
+#### 输出Softmax稳定性z-loss
+#### QK Norm
 
 ### The Full Transformer LM资源计算表
 [计算器](https://docs.google.com/spreadsheets/d/1LebxBI5lkoNdMFEBIOIEnHylSvvzoC8xvWMBcXwjy7U/edit?usp=sharing)
