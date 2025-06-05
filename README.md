@@ -16,7 +16,7 @@ CS336的授课教师也给出了自己实现大模型的目的，
 <img src="https://github.com/user-attachments/assets/ac896cc4-3a4f-4e61-8824-8fa906b50fce" alt="drawing" width="600"/>
 
 ## 作业介绍
-### 作业一
+### [作业一](https://github.com/mocibb/cs336/blob/main/assign1.md)
 * 实现BPE分词器‌
 * 实现Transformer模型、交叉熵损失函数、AdamW优化器及训练循环‌
 * TinyStories和OpenWebText数据集上进行训练‌
