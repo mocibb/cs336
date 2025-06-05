@@ -17,9 +17,6 @@
 中文分词算法
 
 
-词汇大小
-<img src="https://github.com/user-attachments/assets/4526866f-c433-4f4b-8e66-da5c7e25b8f6" alt="vocab" width="600"/>
-
 ### BPE算法
 基本操作
 1. 选择最高的pair
