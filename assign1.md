@@ -18,6 +18,9 @@
 1. 选择最高的pair
 2. 合并pair，并更新pair出现次数
 
+#### 带标记的堆结构
+带标记的堆结构由headq和dict组成，可以实现O(1)的top1操作和O(1)的更新。
+
 ## 模型
 ### Pre-vs-post Norm
 减小梯度Norm的跳动
