@@ -61,9 +61,10 @@ targets是真实的下一次要接龙的单词，为 $\hat{x}\_{i+1}$
 
 $\ell(\theta ; D)=-\frac{1}{|D|} \sum_{x \in D} \log p_\theta\left(x_{i+1} = \hat{x}\_{i+1} \mid x_{1: i}\right) $
 
-### The SGD Optimizer
-
 ### AdamW
+优点：
+原理：
+
 
 ### Muon
 https://kellerjordan.github.io/posts/muon/
