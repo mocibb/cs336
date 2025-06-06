@@ -1,4 +1,4 @@
-# 作业一参考资料
+# 作业一参考资料（整理中）
 ## 分词(Tokenizer)
 分词指标包括，词汇数目(vocabulary size)和压缩率(compression ratio)。
 
