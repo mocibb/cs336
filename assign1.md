@@ -66,12 +66,43 @@ $p_\theta\left(x_{i+1} \mid x_{1: i} \right)=\frac{\exp\left( \text{input}[x_i] 
 
 $\ell(\theta ; D)=-\frac{1}{|D|} \sum_{x \in D} \log p_\theta\left(x_{i+1} = \hat{x}\_{i+1} \mid x_{1: i}\right) $
 
+### 优化器选择的经验法则 (From cs231n)
+> 在许多情况下，即便不调学习率，Adam也是理想的默认选择；
+> 
+> 使用SGD+Momentum可能优于Adam，但通常需更精细地调整学习率及调度策略；
+> 
+> 如果数据集较小可以使用full batch更新的话建议尝试L-BFGS算法。
+
+
 ### AdamW
+
 论文 《Decoupled Weight Decay Regularization》
 
-优点：
+AdamW是目前大语言模型主流的优化器，
 
-原理：
+**背景:**
+
+Adam在泛化性方面被认为弱于SGD+Momentum的组合。作者认为在Adam中的L2正则化和权重衰减正则化并不等价（参见论文性质2）。
+
+而在SGD+Momentum中L2正则化恰好等于权重衰减正则化。
+
+权重衰减正则化被认为可以带来更好的泛化性能。 所以通过把权重衰减显式的加入到更新中提升了在CIFAR-10分类任务测试中的性能。
+
+**L2正则化 vs 权重衰减正则化**
+
+从这个图可以看出，L2正则化是把上一次参数经过衰减加入梯度；
+
+而权重衰减正则化是上一次参数不经过梯度的缩放和变换直接衰减后叠加到参数。
+
+
+<img src="https://github.com/user-attachments/assets/0046dd77-c890-472f-aaa1-8d57b3677362" alt="sdg vs adamw" width="400"/>
+
+
+问题：
+
+为什么权重衰减正则化的泛化性更优？
+
+AdamW 引用了论文 《Bayesian filtering unifies adaptive and non-adaptive neural network optimization methods》
 
 
 ### Muon
@@ -84,4 +115,6 @@ https://kellerjordan.github.io/posts/muon/
 ### Trick
 https://gist.github.com/ZijiaLewisLu/eabdca955110833c0ce984d34eb7ff39?permalink_comment_id=3417135
 1. 使用 numpy.memmap(), array = numpy.array(memmap_file)
-2. 
+
+
+https://huggingface.co/blog/train_memory
