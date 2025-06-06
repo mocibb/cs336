@@ -51,7 +51,7 @@
 
 ### Softmax稳定性问题
 #### 输出Softmax稳定性z-loss
-#### QK Norm
+#### QK-Norm
 
 ### Attention heads
 
@@ -117,8 +117,23 @@ AdamW 引用了论文 《Bayesian filtering unifies adaptive and non-adaptive ne
 
 其他关于权重衰减的论文还可以参考 《Why Do We Need Weight Decay in Modern Deep Learning?》
 
+**训练资源计算**
+
+
 ### Muon
-https://kellerjordan.github.io/posts/muon/
+- kellerjordan的版本 https://kellerjordan.github.io/posts/muon/
+- 月之暗面的开源版本 https://github.com/MoonshotAI/Moonlight
+
+算法
+<img src="https://github.com/user-attachments/assets/a89fa6fa-556c-4e02-97da-ec9b1b721316" alt="muon" width="400"/>
+
+
+怎么观察梯度方向
+
+1. 观察条件数
+2. 投影到低维空间
+
+
 
 ### 学习率调度(learning_rate_tuning)
 
