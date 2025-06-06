@@ -115,11 +115,16 @@ Adam在泛化性方面被认为弱于SGD+Momentum的组合。作者认为在Adam
 
 AdamW 引用了论文 《Bayesian filtering unifies adaptive and non-adaptive neural network optimization methods》
 
+其他关于权重衰减的论文还可以参考 《Why Do We Need Weight Decay in Modern Deep Learning?》
 
 ### Muon
 https://kellerjordan.github.io/posts/muon/
 
 ### 学习率调度(learning_rate_tuning)
+
+论文
+- 《Llama: Open and eﬀicient foundation language models》
+- 《Why Do We Need Weight Decay in Modern Deep Learning?》
 
 ## 实验
 
