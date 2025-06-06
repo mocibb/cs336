@@ -29,9 +29,20 @@
 ## 模型
 ### Pre-vs-post Norm
 减小梯度Norm的跳动
+
+参考
+
+- 《On Layer Normalization in the Transformer Architecture》
+- 《Transformers without tears: Improving the normalization of selfattention》
+
+
 ### LayerNorm vs RMSNorm
-1. Data Movement Is All You Need
-2. Root Mean Square Layer Normalization
+
+参考
+
+- 《Data Movement Is All You Need》
+- 《Root Mean Square Layer Normalization》
+
 ### Gating, activations
 
 ### RoPE
