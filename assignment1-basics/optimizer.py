@@ -1,5 +1,5 @@
 import torch
-from math import sqrt
+from math import sqrt, cos, pi
 from einops import einsum, rearrange
 from jaxtyping import Float, Int
 from torch import Tensor
@@ -12,7 +12,31 @@ def cross_entropy(inputs: Float[Tensor, "b v"], targets: Int[Tensor, "b"]) -> Fl
     target_logits = shifted.gather(1, targets.unsqueeze(1))
     return torch.mean(log_sum_exp-target_logits)
 
+def gradient_clipping(param: Iterable[torch.nn.Parameter], M: float) -> None:
+    grads = [p.grad.flatten() for p in param if p is not None and p.grad is not None]
+    all_grads = torch.cat(grads, dim=0)
+    norm = torch.norm(all_grads)
 
+    if norm > M:
+        clip_coef = M / (norm + 1.e-6)
+        for p in param:
+            if p is not None and p.grad is not None:
+                p.grad *= clip_coef
+
+def get_lr_cosine_schedule(
+    it: int,
+    max_learning_rate: float,
+    min_learning_rate: float,
+    warmup_iters: int,
+    cosine_cycle_iters: int,
+):
+    if it < warmup_iters:
+        return it / warmup_iters * max_learning_rate
+    elif it < cosine_cycle_iters:
+        return min_learning_rate + 0.5*(1+cos(pi*(it-warmup_iters)/(cosine_cycle_iters-warmup_iters))) * (max_learning_rate-min_learning_rate)
+    else:
+        return min_learning_rate
+    
 class SGD(torch.optim.Optimizer):
     def __init__(self, params, lr=1e-3):
         if lr < 0:
@@ -69,8 +93,9 @@ class AdamW(torch.optim.Optimizer):
                 v.mul_(beta2).addcmul_(grad, grad, value=1-beta2)
 
                 # scalar
-                lr_t = lr * sqrt(1-beta2**t) / (1-beta1**t)
-                denom = v.sqrt().add_(eps)
+                lr_t = lr * sqrt(1-beta2**t)
+                # 1-beta1**t 直接加到denom上
+                denom = v.sqrt().mul_(1-beta1**t).add_(eps)
                 # ltheta -= lr_t * m / denom
                 p.data.addcdiv_(m, denom, value=-lr_t)
                 # theta -= lr * wd * theta
