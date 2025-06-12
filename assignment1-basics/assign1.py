@@ -1,4 +1,5 @@
 from train_bpe import train_bpe
+# from train_bpe_slow import train_bpe
 from tokenizer import Tokenizer
 from model import Linear, Embedding, RMSNorm, SwiGLU, RotaryPositionalEmbedding, MultiheadSelfAttention, TransformerBlock, TransformerBlockLM
 from model import softmax, scaled_dot_product_attention

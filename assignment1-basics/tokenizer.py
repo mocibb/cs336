@@ -1,4 +1,25 @@
+# coding=utf-8
+# Copyright (c) 2025 mocibb (mocibb@163.com)
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 import regex as re
+import pickle
 from abc import ABC
 from dataclasses import dataclass
 from collections.abc import Iterable, Iterator
@@ -25,7 +46,13 @@ class Tokenizer(ABC):
 
     @classmethod
     def from_files(cls, vocab_filepath: str, merges_filepath: str, special_tokens: list[str] | None=None):
-        raise NotImplementedError
+        with open(vocab_filepath, 'rb') as f:
+            vocab = pickle.load(f)
+            
+        with open(merges_filepath, 'rb') as f:
+            merges = pickle.load(f)
+            
+        return cls(vocab, merges, special_tokens)
 
     def encode(self, text: str) -> list[int]:
         tokens = []
