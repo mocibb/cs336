@@ -26,6 +26,13 @@
 #### 懒惰更新的堆结构
 带标记的堆结构由headq和dict组成，可以实现O(1)的top1操作和O(1)的更新。
 
+#### 作业
+作业中实现了一个c++的高效BPE算法。第一次运行测试前需要编译，
+```bash
+./build.sh
+uv run pytest -k test_train_bpe
+```
+
 ## 模型
 ### Pre-vs-post Norm
 减小梯度Norm的跳动
