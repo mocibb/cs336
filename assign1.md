@@ -39,7 +39,7 @@ uv run pytest -k test_train_bpe
 ### Pre-vs-post Norm
 post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
 
-论文1中定理一利用平均场理论证明了post-norm的梯度过大是造成难训练的原因。
+论文1中定理一利用平均场理论证明了post-norm的梯度( $\mathcal{O}(d \sqrt{\ln d})$ )过大是造成难训练的原因。
 
 论文2给出了一个新的deepnorm使得transformer结构可以达到1000层的深度。
 
