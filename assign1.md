@@ -37,12 +37,21 @@ uv run pytest -k test_train_bpe
 
 ## 模型
 ### Pre-vs-post Norm
-减小梯度Norm的跳动
+post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
+
+论文1中定理一利用平均场理论证明了post-norm的梯度过大是造成难训练的原因。
+
+论文2给出了一个新的deepnorm使得transformer结构可以达到1000层的深度。
+
+论文3以及[苏神](https://spaces.ac.cn/archives/9009)都指出pre-norm的效果其实不如post-norm。
+
+课程视频也介绍了新的double-norm可能平衡训练和性能的最佳方案。
 
 参考
 
-- 《On Layer Normalization in the Transformer Architecture》
-- 《Transformers without tears: Improving the normalization of selfattention》
+1. 《On Layer Normalization in the Transformer Architecture》
+2. 《DeepNet: Scaling Transformers to 1,000 Layers》
+3. 《Transformers without Tears: Improving the Normalization of Self-Attention》
 
 
 ### LayerNorm vs RMSNorm
