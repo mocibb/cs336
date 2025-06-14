@@ -56,7 +56,9 @@ post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
 
 ### LayerNorm vs RMSNorm
 
-参考
+论文1提出训练时数据移动是关键瓶颈。
+
+这个也解释了课程视频提到的虽然从性能上RMSNorm和LayerNorm接近，但是RMSNorm减少了数据移动。
 
 - 《Data Movement Is All You Need》
 - 《Root Mean Square Layer Normalization》
