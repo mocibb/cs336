@@ -19,11 +19,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#define USE_PARALLEL_HASH
+
 #include <vector>
 #include <string>
 #include <string_view>
 #include <unordered_set>
 #include <unordered_map>
+#ifdef USE_PARALLEL_HASH
+#include <parallel_hashmap/phmap.h>
+#endif
 #include <queue>
 #include <memory>
 #include <chrono>
@@ -31,6 +36,14 @@
 
 using Bytes = std::vector<unsigned char>;
 using PairBytes = std::pair<Bytes, Bytes>;
+
+#ifdef USE_PARALLEL_HASH
+#define HashSet phmap::node_hash_set
+#define HashMap phmap::node_hash_map
+#else
+#define HashSet std::unordered_set
+#define HashMap std::unordered_map
+#endif
 
 namespace std {
 
@@ -117,7 +130,7 @@ public:
         return it == entry_map_.end() ? 0 : entry_map_[key];
     }
 
-    T pop() {
+    std::tuple<T, int> pop() {
         while(!queue_.empty()) {
             auto top = queue_.top(); queue_.pop();
 
@@ -125,7 +138,7 @@ public:
             if (it != entry_map_.end() && it->second == top.second) {
                 T key = std::move(top.first);
                 entry_map_.erase(it);
-                return key;
+                return std::make_tuple(key, top.second);
            }
         }
         throw std::runtime_error("Queue is empty");
@@ -161,9 +174,8 @@ private:
     // pair和freq的堆
     std::unique_ptr<Queue> pairsfreq_queue_;
     // 从pair到vocab的映射
-    std::unordered_map<PairBytes, std::unordered_set<size_t>> pairs2vocab_map_;
+    HashMap<PairBytes, HashSet<size_t>> pairs2vocab_map_;
 };
-
 
 BytePairEncoding::BytePairEncoding(int vocab_size, 
                                    const std::vector<std::string>& special_tokens) :
@@ -195,6 +207,8 @@ std::tuple<std::unordered_map<size_t, Bytes>, std::vector<PairBytes> >
     BytePairEncoding::merge() {
     // 1. 构建 pairsfreq_queue_ 和 pairs2freq_map_
     std::unordered_map<PairBytes, int> pairsfreq_map;
+    pairsfreq_map.reserve(5*all_vocab_list_.size());
+    pairs2vocab_map_.reserve(5*all_vocab_list_.size());
     for (size_t i = 0; i < all_vocab_list_.size(); i++) {
         const auto& voc = all_vocab_list_[i];
         const auto len = voc.size();
@@ -217,16 +231,25 @@ std::tuple<std::unordered_map<size_t, Bytes>, std::vector<PairBytes> >
     const auto total_vocab_size = vocab_.size()+vocab_size_;
     merges.reserve(total_vocab_size);
     vocab_.reserve(total_vocab_size);
+    int count = 0;
     while (vocab_.size() < vocab_size_) {
         // best pair
-        const auto& best_pair = pairsfreq_queue_->pop();
-        const auto vocabs_to_merge = pairs2vocab_map_[best_pair]; 
+        const auto& [best_pair, best_freq] = pairsfreq_queue_->pop();
+
+        auto vocabs_to_merge = std::move(pairs2vocab_map_[best_pair]);
         pairs2vocab_map_.erase(best_pair);
+
+        // std::cout << "best_pair: " << best_pair << ", freq: " << best_freq << std::endl;
         // 更新 pairs2vocab_map_, all_merging_list_和all_vocab_freq_map_
+        if (count && count % 100 == 0) {
+            std::cout << count << "/" << vocab_size_ << std::endl;
+        }
+        count++;
+        
         for (const auto& voc_idx : vocabs_to_merge) {
             auto [new_pairs, new_voc, freq] = mergePair(voc_idx, best_pair);
             size_t new_voc_idx = all_vocab_list_.size();
-            
+
             for (const auto& p : new_pairs) {
                 pairs2vocab_map_[p].insert(new_voc_idx);
             }

@@ -26,6 +26,7 @@ import multiprocessing
 import functools
 from typing import BinaryIO
 import os
+import pickle
 from priority_dict import PriorityDict
 from bpe import BytePairEncoding
 
@@ -110,15 +111,16 @@ def train_bpe(input_path: str,
               vocab_size: int,
               special_tokens: list[str]) -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
     # 0. 初始变量
-    num_processes = 2
+    num_processes = 8
+    num_split = 1024
     vocab_counter : dict[bytes, int] = Counter()
 
     # 1. 预分词(pre-tokenization)
+    t0 = time.time()
     boundaries = []
     with open(input_path, "rb") as f:
         boundaries = find_chunk_boundaries(
-            f, num_processes, "<|endoftext|>".encode("utf-8"))
-    t1 = time.time()
+            f, num_split, "<|endoftext|>".encode("utf-8"))
     with multiprocessing.Pool(processes=num_processes) as pool:
         results = pool.imap_unordered(
                 functools.partial(process_chunk, input_path=input_path, special_tokens=special_tokens),
@@ -128,11 +130,19 @@ def train_bpe(input_path: str,
         for res in results:
             vocab_counter.update(res)
     
+    t1 = time.time()
+    print("pre-tokenization = ", t1-t0)
+    
     bpe = BytePairEncoding(vocab_size, special_tokens)
     bpe.setVocabFreq(vocab_counter)
+    result = bpe.merge()
+    t2 = time.time()
 
-    return bpe.merge()
+    print("train = ", t2-t1)
+
+    return result
 
 if __name__ == "__main__":
     # train_bpe('/home/mocibb/cs336/assignment1-basics/bpe_text.txt', 10, ['<|endoftext|>'])
-    train_bpe('/home/mocibb/cs336/assignment1-basics/data/TinyStoriesV2-GPT4-valid.txt', 10000, ['<|endoftext|>'])
+    train_bpe('/home/mocibb/cs336/assignment1-basics/data/TinyStoriesV2-GPT4-train.txt', 10000, ['<|endoftext|>'])
+    # train_bpe('/home/mocibb/cs336/assignment1-basics/data/owt_train.txt', 32000, ['<|endoftext|>'])
