@@ -41,7 +41,7 @@ Tokenizer中encode可以参考代码 [hf gpt2](https://github.com/huggingface/tr
 
 考虑 Hello, 其中 el, ll都是分词得到的pair，ll比el优先级高。这时要先合并ll，因为ll已经合并，所以el不存在了。
 
-所以encode也是每次合并一个优先级最高的pair，然后重新计算pair和优先级。
+所以encode也是每次合并一个优先级最高的pair，合并后重新计算pair和优先级。
 
 
 ## 模型
