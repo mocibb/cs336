@@ -79,12 +79,11 @@ class Tokenizer(ABC):
     
     def encode_chunk(self, chuck: tuple[int], input_path: str) -> list[int]:
         start, end = chuck
-        token_ids = []
         with open(input_path, "rb") as f:
             f.seek(start)
             chunk = f.read(end - start).decode("utf-8", errors="ignore")
-            token_ids.append(self.encode(chunk))
-        return token_ids
+            return self.encode(chunk)
+        return None
     
     def encode_file(self, input_path: str, output_path: str, num_split: int = 4, num_processes: int=4) -> None:
         boundaries = []
@@ -99,10 +98,13 @@ class Tokenizer(ABC):
                     functools.partial(self.encode_chunk, input_path=input_path),
                     zip(boundaries[:-1], boundaries[1:]),
                 )
-            all_token_ids.extend(results)
+            
+            for res in results:
+                all_token_ids.extend(res)
+            
         t1 = time.time()
 
-        print("encode_file = ", t1-t0)
+        print("encode_file: ", t1-t0)
 
         np.save(output_path, np.array(all_token_ids, dtype=np.uint16))
 
@@ -119,19 +121,23 @@ class Tokenizer(ABC):
             text_bytes.append(self.vocab[id])
         return b''.join(text_bytes).decode('utf-8', errors='replace')
 
-    # 需要优化8min
     def _tokenize(self, text: str) -> list[int]:
-        word_list = [bytes([b]) for b in text.encode('utf-8')]        
+        word_list = [bytes([b]) for b in text.encode('utf-8')]   
         while True:
-            #
-            merge_candidates = [(i, b''.join(word_list[i:i+2])) for i in range(len(word_list)-1)]
-            try:
-                best_merge = min( [(self.inv_vocab[c], i, c) for i, c in merge_candidates if c in self.vocab.values()] )
-                idx = best_merge[1]
-                word_list = word_list[:idx] + [best_merge[2]] + word_list[idx+2:]
-            except ValueError:
+            merge_candidates = []
+            for i in range(len(word_list)-1):
+                try:
+                    pair_bytes = b''.join(word_list[i:i+2])
+                    merge_candidates.append( (self.inv_vocab[pair_bytes], i, pair_bytes) )
+                except KeyError:
+                    pass
+        
+            if len(merge_candidates) == 0:
                 break
-
+            best_merge = min( merge_candidates )
+            idx = best_merge[1]
+            word_list[idx:idx+2] = [best_merge[2]]
+    
         return [self.inv_vocab[b] for b in word_list]
 
 
@@ -144,5 +150,6 @@ if __name__ == "__main__":
 
 
     # tokenizer.encode_file(f'{root_folder}/data/TinyStoriesV2-GPT4-valid.txt', f'{root_folder}/data/TinyStoriesV2-GPT4-train.npy')
-    tokenizer.encode_file(f'{root_folder}/data/tinystories_sample_5M.txt', f'{root_folder}/data/TinyStoriesV2-GPT4-train.npy')
+    tokenizer.encode_file(f'{root_folder}/data/TinyStoriesV2-GPT4-train.txt', f'{root_folder}/data/TinyStoriesV2-GPT4-train.npy')
+    # tokenizer.encode_file(f'{root_folder}/data/corpus.en', f'{root_folder}/data/TinyStoriesV2-GPT4-train.npy')
     
