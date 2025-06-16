@@ -22,7 +22,7 @@ CS336的授课教师也给出了自己实现大模型的目的，
 * TinyStories和OpenWebText数据集上进行训练‌
 * 打榜：在H100上给定90分钟内最小化OpenWebText的perplexity
 
-### 作业二
+### [作业二](https://github.com/mocibb/cs336/blob/main/assign2.md)
 * 在Triton中实现一个融合的RMSNorm内核‌
 * 实现分布式数据并行训练‌
 * 实现优化器状态分片‌
