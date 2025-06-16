@@ -1,7 +1,7 @@
 from train_bpe import train_bpe
 # from train_bpe_slow import train_bpe
 from tokenizer import Tokenizer
-from model import Linear, Embedding, RMSNorm, SwiGLU, RotaryPositionalEmbedding, MultiheadSelfAttention, TransformerBlock, TransformerBlockLM
+from model import Linear, Embedding, RMSNorm, SwiGLU, RotaryPositionalEmbedding, MultiheadSelfAttention, TransformerBlock, TransformerLM
 from model import softmax, scaled_dot_product_attention
 from optimizer import cross_entropy, gradient_clipping, get_lr_cosine_schedule, AdamW
 from training import get_batch, save_checkpoint, load_checkpoint
@@ -22,7 +22,7 @@ __all__ = ['train_bpe',
            'scaled_dot_product_attention',
            'MultiheadSelfAttention',
            'TransformerBlock',
-           'TransformerBlockLM',
+           'TransformerLM',
            'cross_entropy',
            'gradient_clipping',
            'get_lr_cosine_schedule',

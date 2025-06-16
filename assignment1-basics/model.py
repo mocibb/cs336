@@ -59,7 +59,6 @@ class SwiGLU(torch.nn.Module):
         
     def forward(self, x):
         return self.w2(self.silu(self.w1(x))*self.w3(x))
-        
 
 class RotaryPositionalEmbedding(torch.nn.Module):
     def __init__(self, theta: float, d_k: int, max_seq_len: int, device=None):
@@ -166,7 +165,7 @@ class TransformerBlock(torch.nn.Module):
         return y + self.ffn(self.ln2(y))
     
 
-class TransformerBlockLM(torch.nn.Module):
+class TransformerLM(torch.nn.Module):
     def __init__(self,  
                  vocab_size: int, 
                  context_length: int, 

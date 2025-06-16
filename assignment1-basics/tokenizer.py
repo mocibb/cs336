@@ -18,11 +18,16 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import time
 import regex as re
 import pickle
+import os
+import functools
+import numpy as np
 from abc import ABC
-from dataclasses import dataclass
+import multiprocessing
 from collections.abc import Iterable, Iterator
+from cs336_basics.pretokenization import find_chunk_boundaries
 
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 
@@ -59,6 +64,7 @@ class Tokenizer(ABC):
         start = 0
         if self.special_tokens_pattern:
             for m0 in re.finditer(self.special_tokens_pattern, text):
+                
                 for match in re.finditer(PAT, text[start:m0.start()]):
                     for t in self._tokenize(match.group()):
                         tokens.append(t)
@@ -70,6 +76,36 @@ class Tokenizer(ABC):
                 for t in self._tokenize(match.group()):
                     tokens.append(t)
         return tokens
+    
+    def encode_chunk(self, chuck: tuple[int], input_path: str) -> list[int]:
+        start, end = chuck
+        token_ids = []
+        with open(input_path, "rb") as f:
+            f.seek(start)
+            chunk = f.read(end - start).decode("utf-8", errors="ignore")
+            token_ids.append(self.encode(chunk))
+        return token_ids
+    
+    def encode_file(self, input_path: str, output_path: str, num_split: int = 4, num_processes: int=4) -> None:
+        boundaries = []
+        with open(input_path, "rb") as f:
+            boundaries = find_chunk_boundaries(
+                f, num_split, "<|endoftext|>".encode("utf-8"))
+        
+        all_token_ids = []
+        t0 = time.time()
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            results = pool.imap_unordered(
+                    functools.partial(self.encode_chunk, input_path=input_path),
+                    zip(boundaries[:-1], boundaries[1:]),
+                )
+            all_token_ids.extend(results)
+        t1 = time.time()
+
+        print("encode_file = ", t1-t0)
+
+        np.save(output_path, np.array(all_token_ids, dtype=np.uint16))
+
 
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
         for text in iterable:
@@ -97,3 +133,16 @@ class Tokenizer(ABC):
                 break
 
         return [self.inv_vocab[b] for b in word_list]
+
+
+if __name__ == "__main__":
+    root_folder = os.path.dirname(os.path.abspath(__file__))
+
+    tokenizer = Tokenizer.from_files(f'{root_folder}/data/TinyStoriesV2-vocab.pkl', 
+                                     f'{root_folder}/data/TinyStoriesV2-merges.pkl', 
+                                     special_tokens=['<|endoftext|>'])
+
+
+    # tokenizer.encode_file(f'{root_folder}/data/TinyStoriesV2-GPT4-valid.txt', f'{root_folder}/data/TinyStoriesV2-GPT4-train.npy')
+    tokenizer.encode_file(f'{root_folder}/data/tinystories_sample_5M.txt', f'{root_folder}/data/TinyStoriesV2-GPT4-train.npy')
+    

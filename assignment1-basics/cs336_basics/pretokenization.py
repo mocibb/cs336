@@ -2,8 +2,8 @@ import os
 from typing import BinaryIO
 
 def find_chunk_boundaries(
-    file: BinaryIO, 
-    desired_num_chunks: int, 
+    file: BinaryIO,
+    desired_num_chunks: int,
     split_special_token: bytes
 ) -> list[int]:
     """
@@ -48,15 +48,3 @@ def find_chunk_boundaries(
 
     # Make sure all boundaries are unique, but might be fewer than desired_num_chunks
     return sorted(set(chunk_boundaries))
-
-## Usage
-with open(..., "rb") as f:
-    boundaries = find_chunk_boundaries(
-        f, num_processes, "<|endoftext|>".encode("utf-8"))
-        
-    # The following is a serial implementation, but you can parallelize this 
-    # by sending each start/end pair to a set of processes.
-    for start, end in zip(boundaries[:-1], boundaries[1:]):
-        f.seek(start)
-        chunk = f.read(end - start).decode("utf-8", errors="ignore")
-        # Run pre-tokenization on your chunk and store the counts for each pre-token
