@@ -35,6 +35,15 @@
 uv run pytest -k test_train_bpe
 ```
 
+Tokenizer中encode可以参考代码 [hf gpt2](https://github.com/huggingface/transformers/blob/9300728665aaeb0ebf4db99f9d9fbce916b4a183/src/transformers/models/gpt2/tokenization_gpt2.py#L187)
+
+编写encode代码需要考虑下面情况。
+
+考虑 Hello, 其中 el, ll都是分词得到的pair，ll比el优先级高。这时要先合并ll，因为ll已经合并，所以el不存在了。
+
+所以encode也是每次合并一个优先级最高的pair，然后重新计算pair和优先级。
+
+
 ## 模型
 ### Pre-vs-post Norm
 post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
