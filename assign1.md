@@ -16,7 +16,6 @@
 
 中文分词算法
 
-
 ### BPE算法
 基本操作
 1. 选择最高的pair
@@ -50,9 +49,13 @@ c++的版本代码实现了单个词的encode，速度是python版的3倍左右�
 
 #### 开源参考
 [hg](https://github.com/huggingface/tokenizers)
+
 [sentencepiece](https://github.com/google/sentencepiece)
 
 ## 模型
+
+主要参考论文《LLaMA: Open and Efficient Foundation Language Models》
+
 ### Pre-vs-post Norm
 post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
 
