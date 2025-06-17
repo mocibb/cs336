@@ -44,7 +44,9 @@ Tokenizer中encode可以参考代码 [hf gpt2](https://github.com/huggingface/tr
 
 所以encode也是每次合并一个优先级最高的pair，合并后重新计算pair和优先级。
 
-c++的版本代码实现了单个词的encode，速度是python版的3倍左右。4个进程跑tinystories数据集大概要1分半。如果整个tokenizer完全用c++实现应该可以快10倍。
+c++的版本代码实现了单个词的encode，速度是python版的3倍左右。4个进程跑tinystories数据集大概要1分半。
+
+如果整个tokenizer完全用c++实现应该可以快10倍。
 
 
 ## 模型
