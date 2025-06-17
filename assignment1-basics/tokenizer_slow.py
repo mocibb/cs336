@@ -26,14 +26,11 @@ import functools
 import numpy as np
 from abc import ABC
 import multiprocessing
-from encoder import Encoder
+import heapq
 from collections.abc import Iterable, Iterator
 from cs336_basics.pretokenization import find_chunk_boundaries
 
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-
-
-encoderInstance: Encoder = None
 
 class Tokenizer(ABC):
     """Abstract interface for a tokenizer."""
@@ -62,13 +59,6 @@ class Tokenizer(ABC):
             merges = pickle.load(f)
             
         return cls(vocab, merges, special_tokens)
-    
-    def encoder(self):
-        global encoderInstance
-        # 每个进程一份
-        if encoderInstance is None:
-            encoderInstance = Encoder(self.inv_vocab)
-        return encoderInstance
 
     def encode(self, text: str) -> list[int]:
         tokens = []
@@ -77,13 +67,13 @@ class Tokenizer(ABC):
             for m0 in re.finditer(self.special_tokens_pattern, text):
                 
                 for match in re.finditer(PAT, text[start:m0.start()]):
-                    tokens.extend(self.encoder()._encode(match.group()))
+                    tokens.extend(self._tokenize(match.group()))
                 tokens.append(self.inv_vocab[m0.group().encode("utf-8")])
                 start = m0.end()
 
         if start < len(text):
             for match in re.finditer(PAT, text[start:]):
-                tokens.extend(self.encoder()._encode(match.group()))
+                tokens.extend(self._tokenize(match.group()))
         return tokens
     
     def encode_chunk(self, chuck: tuple[int], input_path: str) -> list[int]:
@@ -94,7 +84,7 @@ class Tokenizer(ABC):
             return self.encode(chunk)
         return None
     
-    def encode_file(self, input_path: str, output_path: str, num_split: int = 4, num_processes: int = 1) -> None:
+    def encode_file(self, input_path: str, output_path: str, num_split: int = 4, num_processes: int=4) -> None:
         boundaries = []
         with open(input_path, "rb") as f:
             boundaries = find_chunk_boundaries(
@@ -110,12 +100,13 @@ class Tokenizer(ABC):
             
             for res in results:
                 all_token_ids.extend(res)
-
+            
         t1 = time.time()
 
         print("encode_file: ", t1-t0)
 
         np.save(output_path, np.array(all_token_ids, dtype=np.uint16))
+
 
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
         for text in iterable:
@@ -128,7 +119,27 @@ class Tokenizer(ABC):
         for id in ids:
             text_bytes.append(self.vocab[id])
         return b''.join(text_bytes).decode('utf-8', errors='replace')
+
+    # 加速
+    def _tokenize(self, text: str) -> list[int]:
+        word_list = [bytes([b]) for b in text.encode('utf-8')]
+        while True:
+            merge_candidates = []
+            for i in range(len(word_list)-1):
+                try:
+                    pair_bytes = b''.join(word_list[i:i+2])
+                    merge_candidates.append( (self.inv_vocab[pair_bytes], i, pair_bytes) )
+                except KeyError:
+                    pass
+        
+            if len(merge_candidates) == 0:
+                break
+            best_merge = min( merge_candidates )
+            idx = best_merge[1]
+            word_list[idx:idx+2] = [best_merge[2]]
     
+        return [self.inv_vocab[b] for b in word_list]
+
 
 if __name__ == "__main__":
     root_folder = os.path.dirname(os.path.abspath(__file__))
@@ -137,5 +148,8 @@ if __name__ == "__main__":
                                      f'{root_folder}/data/TinyStoriesV2-merges.pkl', 
                                      special_tokens=['<|endoftext|>'])
 
+
     tokenizer.encode_file(f'{root_folder}/data/TinyStoriesV2-GPT4-train.txt', f'{root_folder}/data/TinyStoriesV2-GPT4-train.npy')
+    # tokenizer.encode_file(f'{root_folder}/data/TinyStoriesV2-GPT4-valid.txt', f'{root_folder}/data/TinyStoriesV2-GPT4-valid.npy')
+    # tokenizer.encode_file(f'{root_folder}/data/corpus.en', f'{root_folder}/data/TinyStoriesV2-GPT4-train.npy')
     

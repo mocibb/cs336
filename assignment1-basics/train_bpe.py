@@ -81,7 +81,6 @@ def train_bpe(input_path: str,
         with open(input_path, "rb") as f:
             boundaries = find_chunk_boundaries(
                 f, num_split, "<|endoftext|>".encode("utf-8"))
-        print("boundaries ok")
         with multiprocessing.Pool(processes=num_processes) as pool:
             results = pool.imap_unordered(
                     functools.partial(process_chunk, input_path=input_path, special_tokens=special_tokens),
