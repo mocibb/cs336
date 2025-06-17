@@ -26,7 +26,7 @@
 #### 懒惰更新的堆结构
 带标记的堆结构由headq和dict组成，可以实现O(1)的top1操作和O(1)的更新。
 
-#### 作业
+#### 作业（BPE）
 作业中实现了一个c++的高效BPE算法，tinystories数据集上train时间不超过2秒钟，在owt数据集上小于8分钟，远远低于作业要求的12小时。
 
 第一次运行测试前需要编译，
@@ -35,6 +35,7 @@
 uv run pytest -k test_train_bpe
 ```
 
+#### 作业（tokenizer）
 Tokenizer中encode可以参考代码 [hf gpt2](https://github.com/huggingface/transformers/blob/9300728665aaeb0ebf4db99f9d9fbce916b4a183/src/transformers/models/gpt2/tokenization_gpt2.py#L187)
 
 编写encode代码需要考虑下面情况。
@@ -42,6 +43,8 @@ Tokenizer中encode可以参考代码 [hf gpt2](https://github.com/huggingface/tr
 考虑 Hello, 其中 el, ll都是分词得到的pair，ll比el优先级高。这时要先合并ll，因为ll已经合并，所以el不存在了。
 
 所以encode也是每次合并一个优先级最高的pair，合并后重新计算pair和优先级。
+
+c++的版本代码实现了单个词的encode，速度是python版的3倍左右。如果整个tokenizer完全用c++实现应该可以快10倍。
 
 
 ## 模型
