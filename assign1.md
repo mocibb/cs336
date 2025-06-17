@@ -48,6 +48,9 @@ c++的版本代码实现了单个词的encode，速度是python版的3倍左右�
 
 如果整个tokenizer完全用c++实现应该可以快10倍。
 
+#### 开源参考
+[hg](https://github.com/huggingface/tokenizers)
+[sentencepiece](https://github.com/google/sentencepiece)
 
 ## 模型
 ### Pre-vs-post Norm
