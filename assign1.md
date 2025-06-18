@@ -177,6 +177,9 @@ AdamW 引用了论文 《Bayesian filtering unifies adaptive and non-adaptive ne
 
 ### 学习率调度(learning_rate_tuning)
 
+学习率比较，cosine annealing看起来后边也有比较大的权重，适合大语言模型。
+<img src="https://github.com/user-attachments/assets/af1f68c4-c83d-47c5-af20-6c5aa6ed7c33" alt="learning rate" width="400"/>
+
 论文
 - 《Llama: Open and eﬀicient foundation language models》
 - 《Why Do We Need Weight Decay in Modern Deep Learning?》
