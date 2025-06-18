@@ -1,3 +1,24 @@
+# coding=utf-8
+# Copyright (c) 2025 mocibb (mocibb@163.com)
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import torch
 from math import sqrt
 from einops import einsum, rearrange
@@ -69,6 +90,7 @@ class RotaryPositionalEmbedding(torch.nn.Module):
         
         # 缓存三角函数表
         idx = torch.arange(max_seq_len, device=device)
+        # [seq] x [half_dim=d_model/num_heads/2] 
         theta_table = torch.outer(idx, inv_freq) 
         self.register_buffer('sin', theta_table.sin(), persistent=False)
         self.register_buffer('cos', theta_table.cos(), persistent=False)
@@ -130,9 +152,10 @@ class MultiheadSelfAttention(torch.nn.Module):
         batch_size = x.size(0)
         seq_len = x.size(-2)
 
+	# 为了rope把h放到最前面
         Q, K, V = (
             rearrange(X(x),
-                    "b s (h d) -> b h s d", h=self.num_heads)
+                    "b s (h d) -> h b s d", h=self.num_heads)
                     for X in (self.q_proj, self.k_proj, self.v_proj)
         )  
 
@@ -141,8 +164,8 @@ class MultiheadSelfAttention(torch.nn.Module):
             Q = self.rope(Q, positions)
             K = self.rope(K, positions)
 
-        mask = torch.tril(torch.ones(seq_len, seq_len, dtype=torch.bool, device=x.device)).expand(batch_size, self.num_heads, -1, -1)
-        attn_output = rearrange(scaled_dot_product_attention(Q, K, V, mask), "b h s d_v -> b s (h d_v)")
+        mask = torch.tril(torch.ones(seq_len, seq_len, dtype=torch.bool, device=x.device)).expand(self.num_heads, batch_size, -1, -1)
+        attn_output = rearrange(scaled_dot_product_attention(Q, K, V, mask), "h b s d_v -> b s (h d_v)")
         
         return self.output_proj(attn_output)
     

@@ -73,22 +73,3 @@ class PriorityDict:
     def __len__(self) -> int:
         return len(self._entry_map)
     
-    def print(self) -> None:
-        print(self._entry_map)
-        # for k, v in self._entry_map.items():
-        #     print(f"k = {k}, v = {v}")
-    
-
-
-if __name__ == "__main__":
-    pd = PriorityDict()
-    print(pd["aa"])
-    pd["a"] = 3
-    pd["b"] = 2
-    pd["c"] = 1
-    pd["a"] = 2
-    pd["a"] = 3
-    print(pd.pop())
-    print(pd.pop())
-    print(pd.pop())
-    print(pd.pop())

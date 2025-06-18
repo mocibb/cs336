@@ -241,9 +241,9 @@ std::tuple<std::unordered_map<size_t, Bytes>, std::vector<PairBytes> >
 
         // std::cout << "best_pair = " << best_pair << ", best_value = " << best_freq << std::endl;
         // 更新 pairs2vocab_map_, all_merging_list_和all_vocab_freq_map_
-        if (count && count % 100 == 0) {
-            std::cout << count << "/" << vocab_size_ << std::endl;
-        }
+        // if (count && count % 100 == 0) {
+        //     std::cout << count << "/" << vocab_size_ << std::endl;
+        // }
         count++;
         
         for (const auto& voc_idx : vocabs_to_merge) {

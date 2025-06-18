@@ -57,7 +57,7 @@ namespace std {
 
 namespace {
 
-Bytes to_bytes(const Bytes& first, const Bytes& second) {
+inline Bytes to_bytes(const Bytes& first, const Bytes& second) {
     Bytes bytes;
     bytes.reserve(first.size() + second.size());
 

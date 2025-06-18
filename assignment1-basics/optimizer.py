@@ -1,3 +1,24 @@
+# coding=utf-8
+# Copyright (c) 2025 mocibb (mocibb@163.com)
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import torch
 from math import sqrt, cos, pi
 from einops import einsum, rearrange
@@ -9,7 +30,7 @@ from typing import Optional
 def cross_entropy(inputs: Float[Tensor, "b v"], targets: Int[Tensor, "b"]) -> Float[Tensor, ""]:
     shifted = inputs - inputs.max(dim=-1, keepdim=True).values 
     log_sum_exp = torch.log(torch.exp(shifted).sum(dim=-1))
-    target_logits = shifted.gather(1, targets.unsqueeze(1))
+    target_logits = shifted.gather(-1, targets.unsqueeze(1))
     return torch.mean(log_sum_exp-target_logits)
 
 def gradient_clipping(param: Iterable[torch.nn.Parameter], M: float) -> None:
