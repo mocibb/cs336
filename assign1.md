@@ -54,7 +54,7 @@ c++的版本代码实现了单个词的encode，速度是python版的3倍左右�
 
 ## 模型
 
-主要参考论文《LLaMA: Open and Efficient Foundation Language Models》
+主要参考论文《LLaMA: Open and Efficient Foundation Language Models》和《Qwen2.5 technical report》
 
 ### Pre-vs-post Norm
 post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
@@ -174,7 +174,6 @@ AdamW 引用了论文 《Bayesian filtering unifies adaptive and non-adaptive ne
 2. 投影到低维空间
 
 
-
 ### 学习率调度(learning_rate_tuning)
 
 学习率比较，cosine annealing看起来后边也有比较大的权重，适合大语言模型。
@@ -186,9 +185,9 @@ AdamW 引用了论文 《Bayesian filtering unifies adaptive and non-adaptive ne
 
 ## 实验
 
+
+
 ### Trick
 https://gist.github.com/ZijiaLewisLu/eabdca955110833c0ce984d34eb7ff39?permalink_comment_id=3417135
-1. 使用 numpy.memmap(), array = numpy.array(memmap_file)
-
 
 https://huggingface.co/blog/train_memory
