@@ -1,37 +1,17 @@
 # CS336 Spring 2025 Assignment 1: Basics
 
-For a full description of the assignment, see the assignment handout at
+作业一的详细说明手册参见
 [cs336_spring2025_assignment1_basics.pdf](./cs336_spring2025_assignment1_basics.pdf)
 
-If you see any issues with the assignment handout or code, please feel free to
-raise a GitHub issue or open a pull request with a fix.
 
-## Setup
-
-### Environment
-We manage our environments with `uv` to ensure reproducibility, portability, and ease of use.
-Install `uv` [here](https://github.com/astral-sh/uv) (recommended), or run `pip install uv`/`brew install uv`.
-We recommend reading a bit about managing projects in `uv` [here](https://docs.astral.sh/uv/guides/projects/#managing-dependencies) (you will not regret it!).
-
-You can now run any code in the repo using
-```sh
-uv run <python_file_path>
-```
-and the environment will be automatically solved and activated when necessary.
-
-### Run unit tests
-
+## 跑通测试
 
 ```sh
 uv run pytest
 ```
 
-Initially, all tests should fail with `NotImplementedError`s.
-To connect your implementation to the tests, complete the
-functions in [./tests/adapters.py](./tests/adapters.py).
-
-### Download data
-Download the TinyStories data and a subsample of OpenWebText
+## 训练TinyStories数据集
+下载TinyStories数据集
 
 ``` sh
 mkdir -p data
@@ -40,11 +20,24 @@ cd data
 wget https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinyStoriesV2-GPT4-train.txt
 wget https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinyStoriesV2-GPT4-valid.txt
 
-wget https://huggingface.co/datasets/stanford-cs336/owt-sample/resolve/main/owt_train.txt.gz
-gunzip owt_train.txt.gz
-wget https://huggingface.co/datasets/stanford-cs336/owt-sample/resolve/main/owt_valid.txt.gz
-gunzip owt_valid.txt.gz
-
-cd ..
 ```
+
+训练TinyStories的数据集
+
+第一次train时需要bpe，大概1分钟左右。
+
+同样的第一次train时也需要tokenization，大概6-7分钟。
+
+4060ti上训练4万次迭代需要1.3个小时，最后eval数据的loss大概1.5左右。
+
+``` sh
+cd assignment1-basics
+
+./build.sh
+
+uv run python ./train_tinystories.py
+
+```
+ 
+
 
