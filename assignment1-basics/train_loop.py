@@ -168,19 +168,3 @@ def train_model(config : PretrainedConfig):
     
     wandb.finish()
 
-if __name__ == "__main__":
-    root_folder = os.path.dirname(os.path.abspath(__file__))
-    data_folder = "{}/data/".format( root_folder )
-    checkpoint_folder = "{}/checkpoints/".format( root_folder )
-    
-    config = PretrainedConfig(
-        project_name="tinystories",
-        vocab_path=f"{data_folder}/TinyStoriesV2-vocab.pkl",
-        merges_path=f"{data_folder}/TinyStoriesV2-merges.pkl",
-        special_tokens=["<|endoftext|>"],
-        train_path=f"{data_folder}/TinyStoriesV2-GPT4-train.npy",
-        valid_path=f"{data_folder}/TinyStoriesV2-GPT4-valid.npy",
-        checkpoint_dir=checkpoint_folder
-    )
-
-    train_model(config)

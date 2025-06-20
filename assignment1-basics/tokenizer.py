@@ -135,12 +135,3 @@ class Tokenizer(ABC):
             text_bytes.append(self.vocab[id])
         return text_bytes
 
-if __name__ == "__main__":
-    root_folder = os.path.dirname(os.path.abspath(__file__))
-
-    tokenizer = Tokenizer.from_files(f'{root_folder}/data/TinyStoriesV2-vocab.pkl', 
-                                     f'{root_folder}/data/TinyStoriesV2-merges.pkl', 
-                                     special_tokens=['<|endoftext|>'])
-
-    tokenizer.encode_file(f'{root_folder}/data/TinyStoriesV2-GPT4-train.txt', f'{root_folder}/data/TinyStoriesV2-GPT4-train.npy')
-    

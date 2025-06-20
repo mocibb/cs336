@@ -111,10 +111,3 @@ def train_bpe(input_path: str,
             pickle.dump(result[1], f)
 
     return result
-
-if __name__ == "__main__":
-    root_folder = os.path.dirname(os.path.abspath(__file__))
-
-    train_bpe(f'{root_folder}/data/TinyStoriesV2-GPT4-train.txt', 10000, ['<|endoftext|>'],
-              True, f'{root_folder}/data/TinyStoriesV2-pretokens.pkl',
-              [f'{root_folder}/data/TinyStoriesV2-vocab.pkl', f'{root_folder}/data/TinyStoriesV2-merges.pkl'])
