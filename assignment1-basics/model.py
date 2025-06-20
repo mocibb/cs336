@@ -65,43 +65,50 @@ class RMSNorm(torch.nn.Module):
         in_dtype = x.dtype
         x = x.to(torch.float32)
         # rms = \sqrt{\frac{1}{N} \sum_{i=1}^{N} a_i^2+\varepsilon}
-        rms = torch.sqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
+        # inverse sqrt root
+        rms = torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
         # result = x_i * \frac{w_i}{rms}
-        return (x*self.weight/rms).to(in_dtype)
+        x = x*rms
+        return (x*self.weight).to(in_dtype)
+
+def silu(x: torch.Tensor):
+    return x * torch.sigmoid(x)
     
 class SwiGLU(torch.nn.Module):
     def __init__(self, d_model, d_ff, device=None, dtype=None):
         super().__init__()
 
-        self.w1 = Linear(d_model, d_ff)
-        self.w2 = Linear(d_ff, d_model)
-        self.w3 = Linear(d_model, d_ff)
-        self.silu = lambda x: x * torch.sigmoid(x)
+        self.w1 = Linear(d_model, d_ff, device=device)
+        self.w2 = Linear(d_ff, d_model, device=device)
+        self.w3 = Linear(d_model, d_ff, device=device)
         
     def forward(self, x):
-        return self.w2(self.silu(self.w1(x))*self.w3(x))
+        return self.w2(silu(self.w1(x))*self.w3(x))
 
 class RotaryPositionalEmbedding(torch.nn.Module):
     def __init__(self, theta: float, d_k: int, max_seq_len: int, device=None):
         super().__init__()
 
         half_dim = d_k // 2
-        inv_freq = 1.0 / (theta ** (torch.arange(0, half_dim, device=device).float() / half_dim))
+        inv_freq = (theta ** -(torch.arange(0, half_dim, device=device).float() / half_dim))
         
         # 缓存三角函数表
         idx = torch.arange(max_seq_len, device=device)
         # [seq] x [half_dim=d_model/num_heads/2] 
         theta_table = torch.outer(idx, inv_freq) 
-        self.register_buffer('sin', theta_table.sin(), persistent=False)
         self.register_buffer('cos', theta_table.cos(), persistent=False)
+        self.register_buffer('sin', theta_table.sin(), persistent=False)
     
     def forward(self, x: torch.Tensor, token_positions: torch.Tensor) -> torch.Tensor:
         # 获取对应位置的旋转矩阵
         cos = self.cos[token_positions]
         sin = self.sin[token_positions]
+
+        # x: batch x head x context x dim
+        # token_positions: 1 x 1 x context x dim
         # x1 = x[..., 0::2]
         # x2 = x[..., 1::2]
-        x1, x2 = x.unflatten(-1, (-1, 2)).unbind(-1)
+        x1, x2 = rearrange(x, '... (half_d xy) -> xy ... half_d', xy=2)
         # torch.stack(..., dim=-1) 在新的维度上叠加
         # torch.flatten(..., start_dim=-2) 将最后两个维度合并
         return torch.stack((x1*cos-x2*sin, x1*sin+x2*cos), dim=-1).flatten(start_dim=-2)
@@ -155,17 +162,17 @@ class MultiheadSelfAttention(torch.nn.Module):
 	# 为了rope把h放到最前面
         Q, K, V = (
             rearrange(X(x),
-                    "b s (h d) -> h b s d", h=self.num_heads)
+                    "b s (h d) -> b h s d", h=self.num_heads)
                     for X in (self.q_proj, self.k_proj, self.v_proj)
         )  
 
         if self.rope is not None:
-            positions = rearrange(torch.arange(seq_len, device=x.device), "s -> 1 s").expand(batch_size, -1)
+            positions = rearrange(torch.arange(seq_len, device=x.device), "s -> 1 1 s")       
             Q = self.rope(Q, positions)
             K = self.rope(K, positions)
 
-        mask = torch.tril(torch.ones(seq_len, seq_len, dtype=torch.bool, device=x.device)).expand(self.num_heads, batch_size, -1, -1)
-        attn_output = rearrange(scaled_dot_product_attention(Q, K, V, mask), "h b s d_v -> b s (h d_v)")
+        mask = torch.tril(torch.ones(seq_len, seq_len, dtype=torch.bool, device=x.device)).expand(batch_size, self.num_heads, -1, -1)
+        attn_output = rearrange(scaled_dot_product_attention(Q, K, V, mask), "b h s d_v -> b s (h d_v)").contiguous()
         
         return self.output_proj(attn_output)
     
@@ -181,12 +188,11 @@ class TransformerBlock(torch.nn.Module):
         self.ln2 = RMSNorm(d_model, device=device)
         self.ffn = SwiGLU(d_model, d_ff, device=device)
 
-    def forward(self, in_features: torch.Tensor) -> torch.Tensor:       
-        x = self.ln1(in_features)
-        x = self.attn(x)
-        y = in_features + x
-        return y + self.ffn(self.ln2(y))
-    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:       
+        x_attn = self.attn(self.ln1(x))
+        y = x + x_attn
+        y_ffn = self.ffn(self.ln2(y))
+        return y + y_ffn
 
 class TransformerLM(torch.nn.Module):
     def __init__(self,  
@@ -200,6 +206,9 @@ class TransformerLM(torch.nn.Module):
                  device: torch.device | None = None,
                  dtype: torch.dtype | None = None):
         super().__init__()
+
+        self.context_length = context_length
+        self.device = device
 
         self.token_embeddings = Embedding(vocab_size, d_model, device, dtype)
         self.layers = torch.nn.ModuleList(
