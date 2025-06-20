@@ -30,7 +30,7 @@ from typing import Optional
 def cross_entropy(inputs: Float[Tensor, "b v"], targets: Int[Tensor, "b"]) -> Float[Tensor, ""]:
     shifted = inputs - inputs.max(dim=-1, keepdim=True).values 
     log_sum_exp = torch.log(torch.exp(shifted).sum(dim=-1))
-    target_logits = shifted.gather(-1, targets.unsqueeze(1))
+    target_logits = shifted.gather(-1, targets.unsqueeze(-1)).squeeze(-1)
     return torch.mean(log_sum_exp-target_logits)
 
 def gradient_clipping(param: Iterable[torch.nn.Parameter], M: float) -> None:
@@ -51,6 +51,7 @@ def get_lr_cosine_schedule(
     warmup_iters: int,
     cosine_cycle_iters: int,
 ):
+    assert min_learning_rate < max_learning_rate
     if it < warmup_iters:
         return it / warmup_iters * max_learning_rate
     elif it < cosine_cycle_iters:

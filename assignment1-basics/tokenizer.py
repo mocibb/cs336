@@ -129,6 +129,11 @@ class Tokenizer(ABC):
             text_bytes.append(self.vocab[id])
         return b''.join(text_bytes).decode('utf-8', errors='replace')
     
+    def decode_raw(self, ids: list[int]) -> str:
+        text_bytes = []
+        for id in ids:
+            text_bytes.append(self.vocab[id])
+        return text_bytes
 
 if __name__ == "__main__":
     root_folder = os.path.dirname(os.path.abspath(__file__))
