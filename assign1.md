@@ -176,8 +176,6 @@ AdamW 引用了论文 《Bayesian filtering unifies adaptive and non-adaptive ne
 
 ### 学习率调度(learning_rate_tuning)
 
-学习率比较，cosine annealing看起来后边也有比较大的权重，适合大语言模型。
-
 学习率先增加后减小，在热身完毕后增加到最大，然后随着迭代增加逐渐减小。
 
 <img src="https://github.com/user-attachments/assets/68781a53-40a4-4bc8-a5f5-a8937717532b" alt="learning rate" width="400"/>
