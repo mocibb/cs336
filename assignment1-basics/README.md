@@ -28,7 +28,7 @@ wget https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinySto
 
 同样的第一次train时也需要tokenization，大概6-7分钟。
 
-4060ti上训练4万次迭代需要1.3个小时，最后eval数据的loss大概1.5左右。
+4060ti上训练4万次迭代需要1.3个小时，最后eval数据的loss大概1.45左右。
 
 ``` sh
 cd assignment1-basics
@@ -38,6 +38,10 @@ cd assignment1-basics
 uv run python ./train_tinystories.py
 
 ```
- 
+最后附上一段训练后写的作文，生成作文的代码参考generate_text.py
+
+>Once upon a time, there was a girl named Sue. Sue had a pretty doll that she loved very much. She took her doll everywhere she went. One day, Sue's doll broke. Sue was very sad.
+>Sue's mom saw her sad face and asked, "What's wrong, Sue?" Sue showed her mom the broken doll. Her mom said, "Don't worry, we can replace your doll."
+>Sue and her mom went to the store. They bought some ice cream. Sue was happy.
 
 
