@@ -28,7 +28,7 @@ wget https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinySto
 
 同样的第一次train时也需要tokenization，大概6-7分钟。
 
-4060ti上训练4万次迭代需要1.3个小时，最后eval数据的loss大概1.45左右。
+4060ti上训练4万次迭代需要1.5个小时，最后eval数据的loss大概1.45左右。
 
 ``` sh
 cd assignment1-basics
