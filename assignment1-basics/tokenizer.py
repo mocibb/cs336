@@ -40,6 +40,7 @@ class Tokenizer(ABC):
     vocab: dict[int, bytes]
     inv_vocab: dict[bytes, int]
     special_tokens_pattern: str | None
+    eos_id: int
 
     def __init__(self, vocab: dict[int, bytes], merges: list[tuple[bytes, bytes]], special_tokens: list[str] | None = None):
         self.vocab = vocab
@@ -50,7 +51,10 @@ class Tokenizer(ABC):
             self.inv_vocab[v] = k
 
         self.special_tokens_pattern = None
+        self.eos_id = -1
         if special_tokens:
+            if "<|endoftext|>" in special_tokens:
+                self.eos_id = self.inv_vocab["<|endoftext|>".encode("utf-8")]
             self.special_tokens_pattern = "|".join(map(re.escape, sorted(special_tokens, key=len, reverse=True)))
 
     @classmethod

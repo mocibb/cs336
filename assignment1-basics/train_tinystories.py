@@ -41,6 +41,6 @@ if __name__ == "__main__":
         checkpoint_dir=checkpoint_folder
     )
 
-    train_model(config)
+    # train_model(config)
     print("finish train for tinystories.")
     

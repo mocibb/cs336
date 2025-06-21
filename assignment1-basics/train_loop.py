@@ -112,7 +112,7 @@ def train_model(config : PretrainedConfig):
         lr = get_lr_cosine_schedule(
             step,
             config.learning_rate,
-            config.learning_rate*0.01,
+            config.learning_rate*0.05,
             config.warmup_steps,
             config.total_steps
         )
