@@ -9,9 +9,11 @@
 ###  
 small尺寸下的时间(batch: 4, context_length: 256)
 
-cuda情况 forward时间: 0.034s, backward时间: 0.11s
+cuda情况 forward时间: 0.034s(0.00036s), backward时间: 0.11s(0.00029s)
 
 cpu情况 forward时间: 0.79s, backward时间: 2.43s
+
+关于warmup的次数，做不做看起来有很大区别，只要做了warmup次数区别并不大。
 
 ### nsys profile
 1. 安装 [文档](https://developer.nvidia.com/nsight-systems)
@@ -21,7 +23,9 @@ cpu情况 forward时间: 0.79s, backward时间: 2.43s
 
 4. 运行 nsys profile
 ``` sh
-uv run nsys profile  -w true -t cuda,nvtx,osrt,cudnn,cublas --capture-range=none --cudabacktrace=true -x true -o result python benchmark.py
+uv run nsys profile  -w true -t cuda,nvtx,osrt,cudnn,cublas --capture-range=none -python-backtrace=cuda --cudabacktrace=true -x true -o result python benchmark.py
 ```
 这里选择trace cuda, nvtx和osrt(OS runtime library)
 --cudabacktrace=true需要有管理员权限。
+
+<img src="https://github.com/user-attachments/assets/f244eedc-4429-498d-92c9-0309e4736d1c" alt="matmuls" width="2000"/>
