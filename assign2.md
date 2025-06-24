@@ -23,3 +23,5 @@ cpu情况 forward时间: 0.79s, backward时间: 2.43s
 ``` sh
 uv run nsys profile  -w true -t cuda,nvtx,osrt,cudnn,cublas --capture-range=none --cudabacktrace=true -x true -o result python benchmark.py
 ```
+这里选择trace cuda, nvtx和osrt(OS runtime library)
+--cudabacktrace=true需要有管理员权限。
