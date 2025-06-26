@@ -38,6 +38,7 @@ uv run nsys profile  -w true -t cuda,nvtx,osrt,cudnn,cublas --capture-range=none
 FlashAttention通过减少HBM和SRAM间内存搬运次数提高Attention的执行效率。
 
 
+### Forward pass
 
 <img src="https://github.com/user-attachments/assets/038096fd-59cd-4dff-ab61-34677643f596" alt="matmuls" width="600"/>
 
@@ -52,3 +53,13 @@ FlashAttention通过减少HBM和SRAM间内存搬运次数提高Attention的执�
   2.2) $\tilde{O}_i^{(j)} |_j$ 表示j块为止，只减掉 $m_i^{(j)}$ 计算后的结果， $\tilde{O}_i^{(T_k)}$ 与 $\tilde{O}_i$ 只差一个 $l_i^{(T_k)}$ 组成的对角矩阵
 
 <img src="https://github.com/user-attachments/assets/b226fd7f-44d0-4a97-9cb0-a624a9b77e15" alt="matmuls" width="400"/>
+
+
+### Backward pass
+
+
+<img src="https://github.com/user-attachments/assets/f3bbf7eb-fc16-4cab-88ae-ccf1d124b723" alt="matmuls" width="600"/>
+
+
+
+
