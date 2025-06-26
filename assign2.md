@@ -29,3 +29,20 @@ uv run nsys profile  -w true -t cuda,nvtx,osrt,cudnn,cublas --capture-range=none
 --cudabacktrace=true需要有管理员权限。
 
 <img src="https://github.com/user-attachments/assets/f244eedc-4429-498d-92c9-0309e4736d1c" alt="matmuls" width="2000"/>
+
+
+## FlashAttention-2
+
+<img src="https://github.com/user-attachments/assets/038096fd-59cd-4dff-ab61-34677643f596" alt="matmuls" width="600"/>
+
+要点：
+
+1）原始的Attention中的softmax是按照行计算的，FlashAttention中也是先行后列。关键点在于如何解决softmax的计算问题。
+
+2）对于第i行，从左到右，
+
+  2.1) $m_i^{(j)}$ 是到第j块为止的最大值， $l_i^{(j)}$ 是到第j块为止的sumexp(已经减掉最大值)
+  
+  2.2) $\tilde{O}_i^{(j)} |_j$ 表示j块为止，只减掉 $m_i^{(j)}$ 计算后的结果， $\tilde{O}_i^{(T_k)}$ 与 $\tilde{O}_i$ 只差一个 $l_i^{(T_k)}$ 组成的对角矩阵
+
+<img src="https://github.com/user-attachments/assets/b226fd7f-44d0-4a97-9cb0-a624a9b77e15" alt="matmuls" width="400"/>
