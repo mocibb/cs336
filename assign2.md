@@ -33,6 +33,12 @@ uv run nsys profile  -w true -t cuda,nvtx,osrt,cudnn,cublas --capture-range=none
 
 ## FlashAttention-2
 
+<img src="https://github.com/user-attachments/assets/ddcd3763-69f3-47f0-8582-3ce08ed7b9c4" alt="matmuls" width="200"/>
+
+FlashAttention通过减少HBM和SRAM间内存搬运次数提高Attention的执行效率。
+
+
+
 <img src="https://github.com/user-attachments/assets/038096fd-59cd-4dff-ab61-34677643f596" alt="matmuls" width="600"/>
 
 要点：
