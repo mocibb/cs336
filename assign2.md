@@ -30,6 +30,10 @@ uv run nsys profile  -w true -t cuda,nvtx,osrt,cudnn,cublas --capture-range=none
 
 <img src="https://github.com/user-attachments/assets/f244eedc-4429-498d-92c9-0309e4736d1c" alt="matmuls" width="2000"/>
 
+### 混合精度
+
+### 内存优化
+
 
 ## FlashAttention-2
 
