@@ -60,6 +60,7 @@ FlashAttention通过减少HBM和SRAM间内存搬运次数提高Attention的执�
 
 
 ### Backward pass
+实在不习惯论文中 $dV$ 这些写法，loss对V的导数用 $\nabla_V l$ 来表示。
 
 #### 梯度的推导
 
