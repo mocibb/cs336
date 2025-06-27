@@ -54,6 +54,17 @@ c++的版本代码实现了单个词的encode，速度是python版的3倍左右�
 
 ## 模型
 
+<img src="https://github.com/user-attachments/assets/3bf5d2b3-d4ac-4cd6-8aaa-7dee0a652bd3" alt="sdg vs adamw" width="600"/>
+
+### FFN层作用
+
+参考
+
+《One Wide Feedforward is All You Need》
+
+《Attention is not all you need》
+
+
 主要参考论文《LLaMA: Open and Efficient Foundation Language Models》和《Qwen2.5 technical report》
 
 ### Pre-vs-post Norm
