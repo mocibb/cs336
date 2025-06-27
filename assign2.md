@@ -69,7 +69,8 @@ FlashAttention通过减少HBM和SRAM间内存搬运次数提高Attention的执�
 
 关于S的推导
 
-<img src="https://github.com/user-attachments/assets/2a9da99f-39ae-47fc-afcd-cd5bd60a88b5" alt="backward" width="600"/>
+<img src="https://github.com/user-attachments/assets/9fa5286e-82fd-440a-af95-e884680549d2" alt="grad2" width="480"/>
+
 
 算法
 
