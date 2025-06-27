@@ -56,13 +56,24 @@ FlashAttention通过减少HBM和SRAM间内存搬运次数提高Attention的执�
   
   2.2) $\tilde{O}_i^{(j)} |_j$ 表示j块为止，只减掉 $m_i^{(j)}$ 计算后的结果， $\tilde{O}_i^{(T_k)}$ 与 $\tilde{O}_i$ 只差一个 $l_i^{(T_k)}$ 组成的对角矩阵
 
-<img src="https://github.com/user-attachments/assets/b226fd7f-44d0-4a97-9cb0-a624a9b77e15" alt="matmuls" width="400"/>
+<img src="https://github.com/user-attachments/assets/b226fd7f-44d0-4a97-9cb0-a624a9b77e15" alt="forward" width="400"/>
 
 
 ### Backward pass
 
+#### 梯度的推导
 
-<img src="https://github.com/user-attachments/assets/f3bbf7eb-fc16-4cab-88ae-ccf1d124b723" alt="matmuls" width="600"/>
+关于V的推导
+
+<img src="https://github.com/user-attachments/assets/289abdd4-d65b-43c6-9bef-044de6e7bc5a" alt="grad1" width="400"/>
+
+关于S的推导
+
+<img src="https://github.com/user-attachments/assets/2a9da99f-39ae-47fc-afcd-cd5bd60a88b5" alt="backward" width="600"/>
+
+算法
+
+<img src="https://github.com/user-attachments/assets/f3bbf7eb-fc16-4cab-88ae-ccf1d124b723" alt="backward" width="600"/>
 
 
 
