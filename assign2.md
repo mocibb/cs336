@@ -52,7 +52,13 @@ uv run nsys profile  -w true -t cuda,nvtx,osrt,cudnn,cublas --capture-range=none
 这里选择trace cuda, nvtx和osrt(OS runtime library)
 --cudabacktrace=true需要有管理员权限。
 
-<img src="https://github.com/user-attachments/assets/f244eedc-4429-498d-92c9-0309e4736d1c" alt="matmuls" width="1000"/>
+查看kernel调用Summary
+
+<img src="https://github.com/user-attachments/assets/f244eedc-4429-498d-92c9-0309e4736d1c" alt="matmuls" width="800"/>
+
+查看kernel调用参数
+
+<img src="https://github.com/user-attachments/assets/bf10951d-0e7b-4537-9be4-84a2874715aa" alt="matmuls" width="800"/>
 
 
 ### 混合精度
