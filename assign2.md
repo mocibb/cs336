@@ -6,7 +6,18 @@
 
 ## GPU基础
 
-这部分参考了lecture6中slide的推荐资料。
+GPU优化总结
+
+<img src="https://github.com/user-attachments/assets/5ed11434-f122-4dc5-b56c-a27b07bea1ea" alt="matmuls" width="500"/>
+
+Triton是DSL语言，编译后是PTX。Triton提供了很多高级特性，比如显存合并访问，共享内存管理‌，Sm内部调度管理和跨Sm调度管理。 Triton速度很快，值得学习。
+
+可以通过print_ptx打印Triton生成的PTX代码。
+
+Torch.compile优化效果很好，对于一般应用可能跟手写cuda性能相当。
+
+
+GPU优化需要的基础，这部分拷贝了lecture6中slide中的推荐资料。
 
 - [CUDA MODE Lecture 1: how to profile CUDA kernels in PyTorch](https://www.youtube.com/watch?v=LuhJEEJQgUM)
 - [CUDA MODE Lecture 2: Chapters 1-3 of PPMP book](https://www.youtube.com/watch?v=NQ-0D5Ti2dc)
