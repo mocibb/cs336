@@ -23,10 +23,10 @@ CS336的授课教师也给出了自己实现大模型的目的，
 * 打榜：在H100上给定90分钟内最小化OpenWebText的perplexity
 
 ### [作业二](https://github.com/mocibb/cs336/blob/main/assign2.md)
+* 对实现进行基准测试和性能分析‌
 * 实现FlashAttention2算法
 * 实现分布式数据并行训练‌
 * 实现优化器状态分片‌
-* 对实现进行基准测试和性能分析‌
 
 ### 作业三
 * 定义训练API标准化接口
