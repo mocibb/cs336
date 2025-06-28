@@ -4,9 +4,33 @@
 <img src="https://github.com/user-attachments/assets/c8370d37-f06e-40a3-a2c0-a034f3f6887d" alt="matmuls" width="400"/>
 
 
-## benchmarking
+## GPU基础
 
-###  
+这部分参考了lecture6中slide的推荐资料。
+
+- [CUDA MODE Lecture 1: how to profile CUDA kernels in PyTorch](https://www.youtube.com/watch?v=LuhJEEJQgUM)
+- [CUDA MODE Lecture 2: Chapters 1-3 of PPMP book](https://www.youtube.com/watch?v=NQ-0D5Ti2dc)
+- [CUDA MODE Lecture 3: Getting started with CUDA for Python Programmers](https://www.youtube.com/watch?v=4sgKnKbR-WE)
+- [CUDA MODE Lecture 4: Compute and memory basics](https://www.youtube.com/watch?v=lTmYrKwjSOU)
+- [CUDA MODE Lecture 8: CUDA performance checklist](https://www.youtube.com/watch?v=SGhfUhlowB4)
+- [HetSys Course: Lecture 1: Programming heterogenous computing systems with GPUs](https://www.youtube.com/watch?v=8JGo2zylE80)
+- [HetSys Course: Lecture 2: SIMD processing and GPUs](https://www.youtube.com/watch?v=x1MA4MtO4Tc)
+- [HetSys Course: Lecture 3: GPU Software Hierarchy](https://www.youtube.com/watch?v=KGZ00J5MJz0)
+- [HetSys Course: Lecture 4: GPU Memory Hierarchy](https://www.youtube.com/watch?v=ZQKMZIP3Fzg)
+- [HetSys Course: Lecture 5: GPU performance considerations](https://www.youtube.com/watch?v=ODeprwr3Jho)
+- [A100 GPU with NVIDIA Ampere Architecture](https://jonathan-hui.medium.com/ai-chips-a100-gpu-with-nvidia-ampere-architecture-3034ed685e6e)
+- [NVIDIA Deep Learning Performance Guide](https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/index.html)
+- [GPU Puzzles](https://github.com/srush/gpu-puzzles)
+- [Triton Paper](https://www.eecs.harvard.edu/~htk/publication/2019-mapl-tillet-kung-cox.pdf)
+- [PyTorch 2.0 Acceleration](https://towardsdatascience.com/how-pytorch-2-0-accelerates-deep-learning-with-operator-fusion-and-cpu-gpu-code-generation-35132a85bd26)
+
+## benchmarking & profiling
+
+### 参考资料
+
+pytorch的[benchmark](https://pytorch.org/tutorials/recipes/recipes/benchmark.html) 和 [profiler](https://docs.pytorch.org/tutorials/recipes/recipes/profiler_recipe.html)
+
+### benchmarking
 small尺寸下的时间(batch: 4, context_length: 256)
 
 cuda情况 forward时间: 0.034s(0.00036s), backward时间: 0.11s(0.00029s)
