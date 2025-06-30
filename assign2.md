@@ -77,7 +77,18 @@ uv run nsys profile  -w true -t cuda,nvtx,osrt,cudnn,cublas --capture-range=none
 ### 内存优化
 
 
+## Attention性能分析
+
+
+
+## Triton
+
+
 ## FlashAttention-2
+
+参考：
+- 《FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning》
+- 《Self-attention Does Not Need $O(n^2)$ Memory》
 
 <img src="https://github.com/user-attachments/assets/ddcd3763-69f3-47f0-8582-3ce08ed7b9c4" alt="matmuls" width="200"/>
 
