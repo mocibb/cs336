@@ -285,7 +285,7 @@ def flash_bwd_preprocess(
     # 分块处理N维度
     for i in range(tl.cdiv(N, N_TILE_SIZE)):
         o = tl.load(O_block_ptr, boundary_check=(0,1), padding_option="zero")
-        do = tl.load(dO_block_ptr, boundary_check=(0,1), padding_option="zero").to(tl.float32)
+        do = tl.load(dO_block_ptr, boundary_check=(0,1), padding_option="zero")
         D += tl.sum(o * do, axis=1)
         
         # 移动指针到下一个N分块
@@ -300,7 +300,7 @@ def flash_bwd_preprocess(
 def flash_bwd_kernel(
     Q_ptr, K_ptr, V_ptr,
     D_ptr, L_ptr, dO_ptr, 
-    dQ_ptr, dK_ptr, dV_ptr,
+    dQ_ptr,
     stride_qb, stride_qq, stride_qd,
     stride_kb, stride_kk, stride_kd,
     stride_vb, stride_vk, stride_vd,
@@ -308,8 +308,6 @@ def flash_bwd_kernel(
     stride_lb, stride_lq,
     stride_dob, stride_doq, stride_dod,
     stride_dqb, stride_dqq, stride_dqd,
-    stride_dkb, stride_dkk, stride_dkd,
-    stride_dvb, stride_dvk, stride_dvd,
     N_QUERIES, N_KEYS,
     scale,
     D: tl.constexpr,
@@ -381,17 +379,17 @@ def flash_bwd_kernel(
         order=(1, 0),
     )
     
-    Q_tile = tl.load(Q_block_ptr, boundary_check=(0,), padding_option="zero") 
-    D_tile = tl.load(D_block_ptr, boundary_check=(0,), padding_option="zero") 
+    Q_tile = tl.load(Q_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32) 
+    D_tile = tl.load(D_block_ptr, boundary_check=(0,), padding_option="zero")
     L_tile = tl.load(L_block_ptr, boundary_check=(0,), padding_option="zero") 
-    dO_tile = tl.load(dO_block_ptr, boundary_check=(0,), padding_option="zero") 
+    dO_tile = tl.load(dO_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
     dQ = tl.zeros((Q_TILE_SIZE, D), dtype=tl.float32)
 
     n_k_tiles = tl.cdiv(N_KEYS, K_TILE_SIZE)
-    kv_idx = tl.arange(0, K_TILE_SIZE)
-    d_idx = tl.arange(0, D)
-    v_offset = kv_idx[:, None] * stride_dvk + d_idx[None, :] * stride_dvd
-    k_offset = kv_idx[:, None] * stride_dkk + d_idx[None, :] * stride_dkd
+    # kv_idx = tl.arange(0, K_TILE_SIZE)
+    # d_idx = tl.arange(0, D)
+    # v_offset = kv_idx[:, None] * stride_dvk + d_idx[None, :] * stride_dvd
+    # k_offset = kv_idx[:, None] * stride_dkk + d_idx[None, :] * stride_dkd
 
     if is_causal:
         q_pos = tl.arange(0, Q_TILE_SIZE) + query_tile_index * Q_TILE_SIZE
@@ -399,10 +397,9 @@ def flash_bwd_kernel(
     # 外循环为i，内循环为j 
     for j in range(n_k_tiles):
         # 读取K，V
-        # boundary_check‌ 指定需执行边界检查的维度，只检查第0维
-        K_tile = tl.load(K_block_ptr, boundary_check=(0,), padding_option="zero")
-        V_tile = tl.load(V_block_ptr, boundary_check=(0,), padding_option="zero")  
-        kv_begin = j*K_TILE_SIZE
+        K_tile = tl.load(K_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
+        V_tile = tl.load(V_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
+        # kv_begin = j*K_TILE_SIZE
 
         # 计算注意力分数
         S_ij = tl.dot(Q_tile, tl.trans(K_tile)) * scale
@@ -415,33 +412,171 @@ def flash_bwd_kernel(
         P_ij = tl.exp(S_ij - L_tile[:, None])
 
         # 计算dV, dP, dS, dK, dQ
-        dV = tl.dot(tl.trans(P_ij), dO_tile)
+        # dV = tl.dot(tl.trans(P_ij), dO_tile)
         dP = tl.dot(dO_tile, tl.trans(V_tile))
         dS = P_ij * (dP - D_tile[:, None])
-        dK = tl.dot(tl.trans(dS), Q_tile) * scale
+        # dK = tl.dot(tl.trans(dS), Q_tile) * scale
         dQ += tl.dot(dS, K_tile) * scale
         
         # 原子地将计算出的dV和dK加到全局内存中
-        tl.atomic_add(
-            dV_ptr + batch_index * stride_dvb + kv_begin*stride_dvk
-            + v_offset,
-            dV,
-            sem="relaxed"
-        )
+        # tl.atomic_add(
+        #     dV_ptr + batch_index * stride_dvb + kv_begin*stride_dvk
+        #     + v_offset,
+        #     dV,
+        #     sem="relaxed"
+        # )
 
-        tl.atomic_add(
-            dK_ptr + batch_index * stride_dkb + kv_begin*stride_dkk
-            + k_offset,
-            dK,
-            sem="relaxed"
-        )
+        # tl.atomic_add(
+        #     dK_ptr + batch_index * stride_dkb + kv_begin*stride_dkk
+        #     + k_offset,
+        #     dK,
+        #     sem="relaxed"
+        # )
 
         # 移动指针到下一个块
         K_block_ptr = K_block_ptr.advance((K_TILE_SIZE, 0))
         V_block_ptr = V_block_ptr.advance((K_TILE_SIZE, 0))
 
-    tl.store(dQ_block_ptr, dQ, boundary_check=(0,))
+    tl.store(dQ_block_ptr, dQ.to(dQ_block_ptr.type.element_ty), boundary_check=(0,))
+
+@triton.jit
+def flash_bwd_kernel_kv_first(
+    Q_ptr, K_ptr, V_ptr,
+    D_ptr, L_ptr, dO_ptr, 
+    dK_ptr, dV_ptr,
+    stride_qb, stride_qq, stride_qd,
+    stride_kb, stride_kk, stride_kd,
+    stride_vb, stride_vk, stride_vd,
+    stride_db, stride_dq,
+    stride_lb, stride_lq,
+    stride_dob, stride_doq, stride_dod,
+    stride_dkb, stride_dkk, stride_dkd,
+    stride_dvb, stride_dvk, stride_dvd,
+    N_QUERIES, N_KEYS,
+    scale,
+    D: tl.constexpr,
+    Q_TILE_SIZE: tl.constexpr,
+    K_TILE_SIZE: tl.constexpr,
+    is_causal: tl.constexpr):
+
+    # 先循环key
+    key_tile_index = tl.program_id(0)
+    batch_index = tl.program_id(1)
+
+    Q_block_ptr = tl.make_block_ptr(
+        Q_ptr + batch_index * stride_qb,
+        shape=(N_QUERIES, D),
+        strides=(stride_qq, stride_qd),
+        offsets=(0, 0),
+        block_shape=(Q_TILE_SIZE, D),
+        order=(1, 0),
+    )
     
+    K_block_ptr = tl.make_block_ptr(
+        K_ptr + batch_index * stride_kb,
+        shape=(N_KEYS, D),
+        strides=(stride_kk, stride_kd),
+        offsets=(key_tile_index * K_TILE_SIZE, 0),
+        block_shape=(K_TILE_SIZE, D),
+        order=(1, 0),
+    )
+    
+    V_block_ptr = tl.make_block_ptr(
+        V_ptr + batch_index * stride_vb,
+        shape=(N_KEYS, D),
+        strides=(stride_vk, stride_vd),
+        offsets=(key_tile_index * K_TILE_SIZE, 0),
+        block_shape=(K_TILE_SIZE, D),
+        order=(1, 0),
+    )
+
+    D_block_ptr = tl.make_block_ptr(
+        D_ptr + batch_index * stride_db,
+        shape = (N_QUERIES,),
+        strides = (stride_dq,),
+        offsets = (0,),
+        block_shape = (Q_TILE_SIZE,),
+        order = (0,))
+
+    L_block_ptr = tl.make_block_ptr(
+        L_ptr + batch_index * stride_lb,
+        shape = (N_QUERIES,),
+        strides = (stride_lq,),
+        offsets = (0,),
+        block_shape = (Q_TILE_SIZE,),
+        order = (0,))
+    
+    dO_block_ptr = tl.make_block_ptr(
+        dO_ptr + batch_index * stride_dob,
+        shape = (N_QUERIES, D),
+        strides=(stride_doq, stride_dod),
+        offsets=(0, 0),
+        block_shape=(Q_TILE_SIZE, D),
+        order=(1, 0),
+    )
+    
+    dK_block_ptr = tl.make_block_ptr(
+        dK_ptr + batch_index * stride_dkb,
+        shape=(N_KEYS, D),
+        strides=(stride_dkk, stride_dkd),
+        offsets=(key_tile_index * K_TILE_SIZE, 0),
+        block_shape=(K_TILE_SIZE, D),
+        order=(1, 0),
+    )
+
+    dV_block_ptr = tl.make_block_ptr(
+        dV_ptr + batch_index * stride_dvb,
+        shape=(N_KEYS, D),
+        strides=(stride_dvk, stride_dvd),
+        offsets=(key_tile_index * K_TILE_SIZE, 0),
+        block_shape=(K_TILE_SIZE, D),
+        order=(1, 0),
+    )
+
+    K_tile = tl.load(K_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
+    V_tile = tl.load(V_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
+
+    # 初始化 dK 和 dV 
+    dK = tl.zeros((K_TILE_SIZE, D), dtype=tl.float32)
+    dV = tl.zeros((K_TILE_SIZE, D), dtype=tl.float32)
+
+    n_q_tiles = tl.cdiv(N_QUERIES, Q_TILE_SIZE)
+    
+    if is_causal:
+        k_pos = tl.arange(0, K_TILE_SIZE) + key_tile_index * K_TILE_SIZE    
+    
+    for j in range(n_q_tiles):
+        # 读取Q, dO, L, D
+        Q_tile = tl.load(Q_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
+        dO_tile = tl.load(dO_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
+        L_tile = tl.load(L_block_ptr, boundary_check=(0,), padding_option="zero")
+        D_tile = tl.load(D_block_ptr, boundary_check=(0,), padding_option="zero")
+
+        # 计算注意力分数
+        S_ij = tl.dot(Q_tile, tl.trans(K_tile)) * scale
+
+        if is_causal:
+            # 当前Q块在context的位置
+            q_pos = tl.arange(0, Q_TILE_SIZE) + j * Q_TILE_SIZE
+            mask = q_pos[:, None] >= k_pos[None, :] 
+            S_ij = tl.where(mask, S_ij, float('-inf'))
+        P_ij = tl.exp(S_ij - L_tile[:, None])
+
+        # 计算dV, dP, dS, dK, dQ
+        dV += tl.dot(tl.trans(P_ij), dO_tile)
+        dP = tl.dot(dO_tile, tl.trans(V_tile))
+        dS = P_ij * (dP - D_tile[:, None])
+        dK += tl.dot(tl.trans(dS), Q_tile) * scale
+        
+        # 移动指针到下一个块
+        Q_block_ptr = Q_block_ptr.advance((Q_TILE_SIZE, 0))
+        dO_block_ptr = dO_block_ptr.advance((Q_TILE_SIZE, 0))
+        L_block_ptr = L_block_ptr.advance((Q_TILE_SIZE,))
+        D_block_ptr = D_block_ptr.advance((Q_TILE_SIZE,))
+    
+    tl.store(dK_block_ptr, dK.to(dK_block_ptr.type.element_ty), boundary_check=(0,))
+    tl.store(dV_block_ptr, dV.to(dV_block_ptr.type.element_ty), boundary_check=(0,))
+
 class FlashAttentionTriton(torch.autograd.Function):
     @staticmethod
     def forward(ctx, Q, K, V, is_causal = False):
@@ -451,7 +586,7 @@ class FlashAttentionTriton(torch.autograd.Function):
 
         # 分块大小
         Bq = 32
-        Bk = 32
+        Bk = 64
 
         Tq = (Nq + Bq - 1) // Bq
 
@@ -494,6 +629,7 @@ class FlashAttentionTriton(torch.autograd.Function):
         assert Nk % Bk == 0
         
         Tq = (Nq + Bq - 1) // Bq
+        Tk = (Nk + Bk - 1) // Bk
 
         # 缩放因子
         scale = 1 / (d ** 0.5)
@@ -512,6 +648,7 @@ class FlashAttentionTriton(torch.autograd.Function):
             M=Nq, N=d,
             M_TILE_SIZE=M_TILE_SIZE, N_TILE_SIZE=N_TILE_SIZE)
 
+
         # 初始化输出
         dQ = torch.zeros_like(Q)
         dK = torch.zeros_like(K)
@@ -520,7 +657,7 @@ class FlashAttentionTriton(torch.autograd.Function):
         flash_bwd_kernel[(Tq, batch_size)](
             Q, K, V,
             D, L, dO,
-            dQ, dK, dV,
+            dQ,
             Q.stride(0), Q.stride(1), Q.stride(2),
             K.stride(0), K.stride(1), K.stride(2),
             V.stride(0), V.stride(1), V.stride(2),
@@ -528,6 +665,20 @@ class FlashAttentionTriton(torch.autograd.Function):
             L.stride(0), L.stride(1),
             dO.stride(0), dO.stride(1), dO.stride(2),
             dQ.stride(0), dQ.stride(1), dQ.stride(2),
+            N_QUERIES=Nq, N_KEYS=Nk,
+            scale=scale,
+            D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal)
+        
+        flash_bwd_kernel_kv_first[(Tk, batch_size)](
+            Q, K, V,
+            D, L, dO,
+            dK, dV,
+            Q.stride(0), Q.stride(1), Q.stride(2),
+            K.stride(0), K.stride(1), K.stride(2),
+            V.stride(0), V.stride(1), V.stride(2),
+            D.stride(0), D.stride(1),
+            L.stride(0), L.stride(1),
+            dO.stride(0), dO.stride(1), dO.stride(2),
             dK.stride(0), dK.stride(1), dK.stride(2),
             dV.stride(0), dV.stride(1), dV.stride(2),
             N_QUERIES=Nq, N_KEYS=Nk,
