@@ -300,7 +300,7 @@ def flash_bwd_preprocess(
 def flash_bwd_kernel(
     Q_ptr, K_ptr, V_ptr,
     D_ptr, L_ptr, dO_ptr, 
-    dQ_ptr,
+    dQ_ptr, dK_ptr, dV_ptr,
     stride_qb, stride_qq, stride_qd,
     stride_kb, stride_kk, stride_kd,
     stride_vb, stride_vk, stride_vd,
@@ -308,6 +308,8 @@ def flash_bwd_kernel(
     stride_lb, stride_lq,
     stride_dob, stride_doq, stride_dod,
     stride_dqb, stride_dqq, stride_dqd,
+    stride_dkb, stride_dkk, stride_dkd,
+    stride_dvb, stride_dvk, stride_dvd,
     N_QUERIES, N_KEYS,
     scale,
     D: tl.constexpr,
@@ -657,7 +659,7 @@ class FlashAttentionTriton(torch.autograd.Function):
         flash_bwd_kernel[(Tq, batch_size)](
             Q, K, V,
             D, L, dO,
-            dQ,
+            dQ, dK, dV,
             Q.stride(0), Q.stride(1), Q.stride(2),
             K.stride(0), K.stride(1), K.stride(2),
             V.stride(0), V.stride(1), V.stride(2),
@@ -665,25 +667,27 @@ class FlashAttentionTriton(torch.autograd.Function):
             L.stride(0), L.stride(1),
             dO.stride(0), dO.stride(1), dO.stride(2),
             dQ.stride(0), dQ.stride(1), dQ.stride(2),
-            N_QUERIES=Nq, N_KEYS=Nk,
-            scale=scale,
-            D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal)
-        
-        flash_bwd_kernel_kv_first[(Tk, batch_size)](
-            Q, K, V,
-            D, L, dO,
-            dK, dV,
-            Q.stride(0), Q.stride(1), Q.stride(2),
-            K.stride(0), K.stride(1), K.stride(2),
-            V.stride(0), V.stride(1), V.stride(2),
-            D.stride(0), D.stride(1),
-            L.stride(0), L.stride(1),
-            dO.stride(0), dO.stride(1), dO.stride(2),
             dK.stride(0), dK.stride(1), dK.stride(2),
             dV.stride(0), dV.stride(1), dV.stride(2),
             N_QUERIES=Nq, N_KEYS=Nk,
             scale=scale,
             D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal)
+        
+        # flash_bwd_kernel_kv_first[(Tk, batch_size)](
+        #     Q, K, V,
+        #     D, L, dO,
+        #     dK, dV,
+        #     Q.stride(0), Q.stride(1), Q.stride(2),
+        #     K.stride(0), K.stride(1), K.stride(2),
+        #     V.stride(0), V.stride(1), V.stride(2),
+        #     D.stride(0), D.stride(1),
+        #     L.stride(0), L.stride(1),
+        #     dO.stride(0), dO.stride(1), dO.stride(2),
+        #     dK.stride(0), dK.stride(1), dK.stride(2),
+        #     dV.stride(0), dV.stride(1), dV.stride(2),
+        #     N_QUERIES=Nq, N_KEYS=Nk,
+        #     scale=scale,
+        #     D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal)
         
         return dQ, dK, dV, None
 
