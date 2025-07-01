@@ -388,10 +388,10 @@ def flash_bwd_kernel(
     dQ = tl.zeros((Q_TILE_SIZE, D), dtype=tl.float32)
 
     n_k_tiles = tl.cdiv(N_KEYS, K_TILE_SIZE)
-    # kv_idx = tl.arange(0, K_TILE_SIZE)
-    # d_idx = tl.arange(0, D)
-    # v_offset = kv_idx[:, None] * stride_dvk + d_idx[None, :] * stride_dvd
-    # k_offset = kv_idx[:, None] * stride_dkk + d_idx[None, :] * stride_dkd
+    kv_idx = tl.arange(0, K_TILE_SIZE)
+    d_idx = tl.arange(0, D)
+    v_offset = kv_idx[:, None] * stride_dvk + d_idx[None, :] * stride_dvd
+    k_offset = kv_idx[:, None] * stride_dkk + d_idx[None, :] * stride_dkd
 
     if is_causal:
         q_pos = tl.arange(0, Q_TILE_SIZE) + query_tile_index * Q_TILE_SIZE
@@ -401,7 +401,7 @@ def flash_bwd_kernel(
         # 读取K，V
         K_tile = tl.load(K_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
         V_tile = tl.load(V_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
-        # kv_begin = j*K_TILE_SIZE
+        kv_begin = j*K_TILE_SIZE
 
         # 计算注意力分数
         S_ij = tl.dot(Q_tile, tl.trans(K_tile)) * scale
@@ -414,10 +414,10 @@ def flash_bwd_kernel(
         P_ij = tl.exp(S_ij - L_tile[:, None])
 
         # 计算dV, dP, dS, dK, dQ
-        # dV = tl.dot(tl.trans(P_ij), dO_tile)
+        dV = tl.dot(tl.trans(P_ij), dO_tile)
         dP = tl.dot(dO_tile, tl.trans(V_tile))
         dS = P_ij * (dP - D_tile[:, None])
-        # dK = tl.dot(tl.trans(dS), Q_tile) * scale
+        dK = tl.dot(tl.trans(dS), Q_tile) * scale
         dQ += tl.dot(dS, K_tile) * scale
         
         # 原子地将计算出的dV和dK加到全局内存中
@@ -625,7 +625,7 @@ class FlashAttentionTriton(torch.autograd.Function):
 
         # 分块大小
         Bq = 16 
-        Bk = 16
+        Bk = 32
 
         assert Nq % Bq == 0
         assert Nk % Bk == 0
@@ -673,21 +673,21 @@ class FlashAttentionTriton(torch.autograd.Function):
             scale=scale,
             D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal)
         
-        # flash_bwd_kernel_kv_first[(Tk, batch_size)](
-        #     Q, K, V,
-        #     D, L, dO,
-        #     dK, dV,
-        #     Q.stride(0), Q.stride(1), Q.stride(2),
-        #     K.stride(0), K.stride(1), K.stride(2),
-        #     V.stride(0), V.stride(1), V.stride(2),
-        #     D.stride(0), D.stride(1),
-        #     L.stride(0), L.stride(1),
-        #     dO.stride(0), dO.stride(1), dO.stride(2),
-        #     dK.stride(0), dK.stride(1), dK.stride(2),
-        #     dV.stride(0), dV.stride(1), dV.stride(2),
-        #     N_QUERIES=Nq, N_KEYS=Nk,
-        #     scale=scale,
-        #     D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal)
+        flash_bwd_kernel_kv_first[(Tk, batch_size)](
+            Q, K, V,
+            D, L, dO,
+            dK, dV,
+            Q.stride(0), Q.stride(1), Q.stride(2),
+            K.stride(0), K.stride(1), K.stride(2),
+            V.stride(0), V.stride(1), V.stride(2),
+            D.stride(0), D.stride(1),
+            L.stride(0), L.stride(1),
+            dO.stride(0), dO.stride(1), dO.stride(2),
+            dK.stride(0), dK.stride(1), dK.stride(2),
+            dV.stride(0), dV.stride(1), dV.stride(2),
+            N_QUERIES=Nq, N_KEYS=Nk,
+            scale=scale,
+            D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal)
         
         return dQ, dK, dV, None
 
