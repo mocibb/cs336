@@ -91,12 +91,35 @@ post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
 
 这个也解释了课程视频提到的虽然从性能上RMSNorm和LayerNorm接近，但是RMSNorm减少了数据移动。
 
+实验确认效果，并不支持老师的结论。因为使用torch.compile后效果几乎没有差别
+
+不编译
+
+<img src="https://github.com/user-attachments/assets/713b7a1a-c4cd-4963-a909-f0bc61ae51be" alt="layernorm-rmsnorm-no-compile" width="600"/>
+
+编译后
+
+<img src="https://github.com/user-attachments/assets/2264bfb4-2979-4862-84aa-7cdbd07a34cc" alt="layernorm-rmsnorm-compile" width="600"/>
+
+
 - 《Data Movement Is All You Need》
 - 《Root Mean Square Layer Normalization》
 
 ### Gating, activations
 
 ### RoPE
+
+嵌入可以看成 $f(x, i)$ ，这里x是token，i是token的位置。
+
+满足相对位置不变的嵌入满足 $\langle f(x, i), f(y, j) \rangle = g(x, y, i-j)$
+
+i和j之间的差值不变时内积结果是不变的。
+
+确认RoPE满足相对位置不变形。
+
+
+
+
 
 ### Hyperparameters
 
@@ -197,6 +220,12 @@ AdamW 引用了论文 《Bayesian filtering unifies adaptive and non-adaptive ne
 
 ## 实验
 
+### RMSNorm作用的验证
+
+
+### 位置嵌入的验证
+
+### FFN的验证
 
 
 ### Trick
