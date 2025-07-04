@@ -91,7 +91,7 @@ post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
 
 这个也解释了课程视频提到的虽然从性能上RMSNorm和LayerNorm接近，但是RMSNorm减少了数据移动。
 
-实验确认效果，并不支持老师的结论。因为使用torch.compile后效果几乎没有差别
+在单机上通过实验确认效果，并不支持老师的结论。因为使用torch.compile后效果几乎没有差别
 
 不编译
 
@@ -102,6 +102,8 @@ post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
 <img src="https://github.com/user-attachments/assets/2264bfb4-2979-4862-84aa-7cdbd07a34cc" alt="layernorm-rmsnorm-compile" width="600"/>
 
 
+考虑原因可能出在多卡训练造成的数据移动开销上。
+
 - 《Data Movement Is All You Need》
 - 《Root Mean Square Layer Normalization》
 
@@ -111,13 +113,28 @@ post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
 
 嵌入可以看成 $f(x, i)$ ，这里x是token，i是token的位置。
 
-满足相对位置不变的嵌入满足 $\langle f(x, i), f(y, j) \rangle = g(x, y, i-j)$
+**相对位置不变的嵌入**满足 $\langle f(x, i), f(y, j) \rangle = g(x, y, i-j)$
 
 i和j之间的差值不变时内积结果是不变的。
 
-确认RoPE满足相对位置不变形。
+考虑RoPE算法，
 
+```math
+R^i = \begin{bmatrix} 
+R_1^i & 0 & 0 & \cdots & 0 \\
+0 & R_2^i & 0 & \cdots & 0 \\
+0 & 0 & R_3^i & \cdots & 0 \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & \cdots & R_{d/2}^i 
+\end{bmatrix}
+```
+因为采用RoPE算法时， $f(x, i) = R_i Q x$, $g(x, j) = R_j K x$
 
+所以内积 $Q^{\top}K$ 矩阵的 $(i,j)$ 位置的值和shift 1个位置之后的值大小一致。
+
+即，
+
+$\langle f(x, i), g(y, j) \rangle = x^{\top} R^{j-i} Q^t R y = \langle f(x, i+1), g(y, j+1) \rangle$
 
 
 
