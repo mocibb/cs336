@@ -15,16 +15,16 @@ CS336的授课教师也给出了自己实现大模型的目的，
 整个课程包括五次作业，通过五次作业可以了解到现代大语言模型的各个方面：
 <img src="https://github.com/user-attachments/assets/ac896cc4-3a4f-4e61-8824-8fa906b50fce" alt="drawing" width="600"/>
 
-## 作业介绍
+## 作业介绍和实现亮点
 ### [作业一](https://github.com/mocibb/cs336/blob/main/assign1.md)
-* 实现BPE分词器‌
+* 实现BPE分词器‌ (**实现高度优化的c++ BPE算法，在TinyStories数据上train处理不到2s。**)
 * 实现Transformer模型、交叉熵损失函数、AdamW优化器及训练循环‌
-* TinyStories和OpenWebText数据集上进行训练‌
+* TinyStories和OpenWebText数据集上进行训练‌ 
 * 打榜：在H100上给定90分钟内最小化OpenWebText的perplexity
 
 ### [作业二](https://github.com/mocibb/cs336/blob/main/assign2.md)
 * 对实现进行基准测试和性能分析‌
-* 实现FlashAttention2算法
+* 实现FlashAttention2算法 （**实现Triton的backward算法**）
 * 实现分布式数据并行训练‌
 * 实现优化器状态分片‌
 
