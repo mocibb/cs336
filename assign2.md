@@ -143,6 +143,10 @@ FlashAttention通过减少HBM和SRAM间内存搬运次数提高Attention的执�
 
 <img src="https://github.com/user-attachments/assets/f3bbf7eb-fc16-4cab-88ae-ccf1d124b723" alt="backward" width="600"/>
 
+### 快速FA的Trick整理
 
+- 使用两趟方案计算backward梯度，避免atomic操作的开销
+- 在casual掩码情况，按行循环时考虑提前中止提升性能
+- 区分non-masked分块和对角分块，non-masked不使用casual掩码。
 
 
