@@ -6,16 +6,29 @@
 
 ## GPU基础
 
+GPU基础知识
+
+了解GPU的体系架构。
+- 什么是SM（streaming multiprocessor），一个SM中有多少CUDA核心。
+- kernel中grid和block的概念。了解block内部线程和不同block间线程的区别。
+- block是通过warp在sm中调度的，GPU是SIMT架构，一个warp由32个线程组成，每个warp有自己的程序计数器和寄存器。了解什么是warp divergence。
+- GPU的内存包括，共享内存和HBM，共享内存较少速度很快，HBM速度相对慢。相同block的线程可以访问相同的共享内存。tiling技术通过共享内存用来减少对HBM访问。
+
 GPU优化总结
+
+GPU优化主要还是通过减少对HBM访问，来提升效率。
 
 <img src="https://github.com/user-attachments/assets/5ed11434-f122-4dc5-b56c-a27b07bea1ea" alt="matmuls" width="500"/>
 
-Triton是DSL语言，编译后是PTX。Triton提供了很多高级特性，比如显存合并访问，共享内存管理‌，Sm内部调度管理和跨Sm调度管理。 Triton速度很快，值得学习。
+Triton是DSL语言，编译后是PTX。Triton提供了很多高级特性，比如显存合并访问，共享内存管理‌，Sm内部调度管理和跨Sm调度管理。 
+
+Triton通过MLIR编译成IR表示，然后再从IR编译成PTX，所以速度很快，值得学习。
 
 可以通过print_ptx打印Triton生成的PTX代码。
 
 Torch.compile优化效果很好，对于一般应用可能跟手写cuda性能相当。
 
+这次作业，只要把作业中weighted_sum看懂就可以上手了。如果对Triton本身比较感兴趣，可以参考这里的[triton-resources](https://github.com/rkinas/triton-resources)
 
 GPU优化需要的基础，这部分拷贝了lecture6中slide中的推荐资料。
 
