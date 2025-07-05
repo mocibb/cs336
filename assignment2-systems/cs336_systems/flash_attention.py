@@ -613,7 +613,9 @@ class FlashAttentionTriton(torch.autograd.Function):
             L.stride(0), L.stride(1),
             N_QUERIES=Nq, N_KEYS=Nk,
             scale=scale,
-            D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal)
+            D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal,
+            num_warps=1,  #在4060Ti上最佳
+            num_stages=3)
 
         ctx.save_for_backward(Q, K, V, O, L)
         ctx.is_causal = is_causal
