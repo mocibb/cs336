@@ -184,6 +184,8 @@ def flash_fwd_kernel(
     m_i = tl.full((Q_TILE_SIZE,), float('-inf'), dtype=tl.float32)
     l_i = tl.zeros((Q_TILE_SIZE,), dtype=tl.float32)
 
+    log2e: tl.constexpr = 1.44269504
+
     if is_causal:
         q_pos = tl.arange(0, Q_TILE_SIZE) + query_tile_index * Q_TILE_SIZE
 
@@ -191,6 +193,7 @@ def flash_fwd_kernel(
     q_valid_len = min(Q_TILE_SIZE, N_QUERIES - query_tile_index * Q_TILE_SIZE)
     q_mask = tl.arange(0, Q_TILE_SIZE) < q_valid_len
 
+    # 这里面耗时主要在两次dot操作
     for i in range(n_k_tiles):
         # 读取K，V
         # boundary_check‌ 指定需执行边界检查的维度，只检查第0维
@@ -215,10 +218,10 @@ def flash_fwd_kernel(
         c_m_i = tl.maximum(m_i, tl.max(S_ij, axis=-1))
 
         # 计算相关性矩阵
-        P_ij = tl.exp(S_ij - c_m_i[:, None])
+        P_ij = tl.math.exp2((S_ij - c_m_i[:, None])*log2e)
 
         # 缩放补偿因子
-        s = tl.exp(m_i - c_m_i)
+        s = tl.math.exp2((m_i - c_m_i)*log2e)
 
         m_i = c_m_i
         l_i = s * l_i + tl.sum(P_ij, axis=-1)
@@ -229,7 +232,7 @@ def flash_fwd_kernel(
         V_block_ptr = V_block_ptr.advance((K_TILE_SIZE, 0))
     
     O_i = O_i / (l_i[:, None] + 1e-6)
-    l_i = m_i + tl.log(l_i)
+    l_i = m_i + tl.math.log2(l_i)/log2e
 
     # 保存
     tl.store(O_block_ptr, O_i.to(O_block_ptr.type.element_ty), boundary_check=(0,))
@@ -588,9 +591,10 @@ class FlashAttentionTriton(torch.autograd.Function):
 
         # 分块大小
         Bq = 32
-        Bk = 64
+        Bk = 16
 
         Tq = (Nq + Bq - 1) // Bq
+        Tk = (Nk + Bk - 1) // Bk
 
         # 缩放因子
         scale = 1 / (d ** 0.5)      
