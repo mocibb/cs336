@@ -46,6 +46,7 @@ GPU优化需要的基础，这部分拷贝了lecture6中slide中的推荐资料�
 - [NVIDIA Deep Learning Performance Guide](https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/index.html)
 - [GPU Puzzles](https://github.com/srush/gpu-puzzles)
 - [Triton Paper](https://www.eecs.harvard.edu/~htk/publication/2019-mapl-tillet-kung-cox.pdf)
+- [PyTorch 2.0 Acceleration](https://medium.com/data-science/how-pytorch-2-0-accelerates-deep-learning-with-operator-fusion-and-cpu-gpu-code-generation-35132a85bd26)
 
 ## benchmarking & profiling
 
