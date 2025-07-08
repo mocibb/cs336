@@ -26,6 +26,9 @@ Triton通过MLIR编译成IR表示，然后再从IR编译成PTX，所以速度很
 
 可以通过print_ptx打印Triton生成的PTX代码。
 
+<img src="https://github.com/user-attachments/assets/b7c80a1b-14c4-480c-bcfa-a65452c90434" alt="matmuls" width="500"/>
+
+
 Torch.compile优化效果很好，对于一般应用可能跟手写cuda性能相当。
 
 这次作业，只要把作业中weighted_sum看懂就可以上手了。如果对Triton本身比较感兴趣，可以参考这里的[triton-resources](https://github.com/rkinas/triton-resources)
