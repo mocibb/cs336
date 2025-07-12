@@ -50,6 +50,8 @@ GPU优化需要的基础，这部分拷贝了lecture6中slide中的推荐资料�
 - [GPU Puzzles](https://github.com/srush/gpu-puzzles)
 - [Triton Paper](https://www.eecs.harvard.edu/~htk/publication/2019-mapl-tillet-kung-cox.pdf)
 - [PyTorch 2.0 Acceleration](https://medium.com/data-science/how-pytorch-2-0-accelerates-deep-learning-with-operator-fusion-and-cpu-gpu-code-generation-35132a85bd26)
+- [CUDA C++ Best Practices Guide](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide)
+- [QuACK](https://github.com/Dao-AILab/quack/blob/main/media/2025-07-10-membound-sol.md)
 
 ## benchmarking & profiling
 
