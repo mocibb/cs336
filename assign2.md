@@ -6,7 +6,7 @@
 
 ## GPU基础
 
-GPU基础知识
+**GPU基础知识**
 
 了解GPU的体系架构。
 - 什么是SM（streaming multiprocessor），一个SM中有多少CUDA核心。
@@ -14,7 +14,7 @@ GPU基础知识
 - block是通过warp在sm中调度的，GPU是SIMT架构，一个warp由32个线程组成，每个warp有自己的程序计数器和寄存器。了解什么是warp divergence。
 - GPU的内存包括，共享内存和HBM，共享内存较少速度很快，HBM速度相对慢。相同block的线程可以访问相同的共享内存。tiling技术通过共享内存用来减少对HBM访问。
 
-GPU优化总结
+**GPU优化总结**
 
 GPU优化主要还是通过减少对HBM访问，来提升效率。
 
@@ -32,6 +32,50 @@ Triton通过MLIR编译成IR表示，然后再从IR编译成PTX，所以速度很
 Torch.compile优化效果很好，对于一般应用可能跟手写cuda性能相当。
 
 这次作业，只要把作业中weighted_sum看懂就可以上手了。如果对Triton本身比较感兴趣，可以参考这里的[triton-resources](https://github.com/rkinas/triton-resources)
+
+**了解显卡的性能参数**
+
+获取GPU的计算峰值
+
+1.矩阵乘法是计算密集型操作，我们通过torch.mulmat来测试。
+
+```python
+# 预热代码....
+
+start_time = time.time()
+N = 8192 * 2
+a = torch.randn(N, N, device=device, dtype=dtype)
+b = torch.randn(N, N, device=device, dtype=dtype)
+
+for i in range(iterations):
+    c = torch.matmul(a, b)
+torch.cuda.synchronize() # 等待所有迭代的GPU操作完成
+end_time = time.time()
+
+total_time = end_time - start_time
+avg_time_per_iteration = total_time / iterations
+
+# 矩阵乘法 (C = A * B) 的计算量是 2 * N^3
+flops_per_iteration = 2 * (N ** 3)
+# TFLOPS = 10^12 FLOPS
+tflops = flops_per_iteration / avg_time_per_iteration / 1e12
+
+print(f"GPU: {torch.cuda.get_device_name(0)}")
+print(f"Average time per iteration: {avg_time_per_iteration:.4f} seconds")
+print(f"Achieved Performance: {tflops:.2f} TFLOPS ({dtype})")
+```
+
+RTX 4060Ti的测试结果，float32为15.19TFLOPS，float16为45.70TFLOPS。
+
+
+2.获取GPU的带宽
+
+通过英伟达最新的工具，测试带宽  https://github.com/nvidia/nvbandwidth
+
+RTX 4060Ti的测试结果，CPU-GPU拷贝是~10GB/s，而GPU-GPU拷贝是~120GB/s。
+
+
+
 
 GPU优化需要的基础，这部分拷贝了lecture6中slide中的推荐资料。
 
