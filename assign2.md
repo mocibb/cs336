@@ -72,8 +72,7 @@ RTX 4060Ti的测试结果，float32为15.19TFLOPS，float16为45.70TFLOPS。
 
 通过英伟达最新的工具，测试带宽  https://github.com/nvidia/nvbandwidth
 
-RTX 4060Ti的测试结果，CPU-GPU拷贝是~10GB/s，而GPU-GPU拷贝是~120GB/s。
-
+RTX 4060Ti的测试结果，CPU-GPU拷贝约为10GB/s，而GPU-GPU拷贝约为120GB/s。
 
 
 
