@@ -3,8 +3,7 @@ import torch.nn.functional as F
 import triton
 import triton.language as tl
 from math import sqrt
-from einops import einsum
-
+from einops import einsum, rearrange
 
 def flash_backward(Q, K, V, O, L, dO, is_causal = False):
     _, Nq, d = Q.shape
@@ -28,7 +27,6 @@ def flash_backward(Q, K, V, O, L, dO, is_causal = False):
     return dQ, dK, dV, None
 
 compiled_backward = torch.compile(flash_backward)
-
 
 class FlashAttentionTorch(torch.autograd.Function):
 
@@ -77,15 +75,15 @@ class FlashAttentionTorch(torch.autograd.Function):
                 S_ij = einsum(Q_tile, K_tile, "... n d, ... m d -> ... n m") * scale
 
                 # 更新行最大值
-                c_m_i = torch.maximum(m_i, S_ij.max(dim=-1).values)
+                m_curr = torch.maximum(m_i, S_ij.max(dim=-1).values)
 
                 # 计算相关性矩阵
-                P_ij = torch.exp(S_ij - c_m_i.unsqueeze(-1))
+                P_ij = torch.exp(S_ij - m_curr.unsqueeze(-1))
 
                 # 缩放补偿因子
-                s = torch.exp(m_i - c_m_i)
+                s = torch.exp(m_i - m_curr)
 
-                m_i = c_m_i
+                m_i = m_curr
                 l_i = s * l_i + torch.sum(P_ij, dim=-1)
                 O_i = O_i * s.unsqueeze(-1) + einsum(P_ij, V_tile, "... n m, ... m d -> ... n d")
 
@@ -215,22 +213,22 @@ def flash_fwd_kernel(
             S_ij = tl.where(mask, S_ij, float('-inf'))
 
         # 更新行最大值
-        c_m_i = tl.maximum(m_i, tl.max(S_ij, axis=-1))
+        m_curr = tl.maximum(m_i, tl.max(S_ij, axis=-1))
 
         # 计算相关性矩阵
-        P_ij = tl.math.exp2((S_ij - c_m_i[:, None])*log2e)
+        P_ij = tl.math.exp2((S_ij - m_curr[:, None])*log2e)
 
         # 缩放补偿因子
-        s = tl.math.exp2((m_i - c_m_i)*log2e)
+        alpha = tl.math.exp2((m_i - m_curr)*log2e)
 
-        m_i = c_m_i
-        l_i = s * l_i + tl.sum(P_ij, axis=-1)
-        O_i = O_i * s[:, None] + tl.dot(P_ij.to(V_tile.dtype), V_tile)
+        m_i = m_curr
+        l_i = alpha * l_i + tl.sum(P_ij, axis=-1)
+        O_i = O_i * alpha[:, None] + tl.dot(P_ij.to(V_tile.dtype), V_tile)
 
         # 移动指针到下一个块
         K_block_ptr = K_block_ptr.advance((K_TILE_SIZE, 0))
         V_block_ptr = V_block_ptr.advance((K_TILE_SIZE, 0))
-    
+
     O_i = O_i / (l_i[:, None] + 1e-6)
     l_i = m_i + tl.math.log2(l_i)/log2e
 
@@ -238,7 +236,137 @@ def flash_fwd_kernel(
     tl.store(O_block_ptr, O_i.to(O_block_ptr.type.element_ty), boundary_check=(0,))
     tl.store(L_block_ptr, l_i.to(L_block_ptr.type.element_ty), boundary_check=(0,))
 
+@triton.jit
+def flash_fwd_casual_kernel(
+    Q_ptr, K_ptr, V_ptr,
+    O_ptr, L_ptr,
+    stride_qb, stride_qq, stride_qd,
+    stride_kb, stride_kk, stride_kd,
+    stride_vb, stride_vk, stride_vd,
+    stride_ob, stride_oq, stride_od,
+    stride_lb, stride_lq,
+    N_QUERIES, N_KEYS,
+    scale,
+    D: tl.constexpr,
+    DTYPE: tl.constexpr,
+    TOTAL_Q_BLOCKS: tl.constexpr,
+    Q_TILE_SIZE: tl.constexpr,
+    K_TILE_SIZE: tl.constexpr
+):
+    # 块索引
+    # 每个block负责处理一个Q矩阵的两行和一个batch。
+    query_tile_idx = tl.program_id(0)
+    batch_idx = tl.program_id(1)
 
+    off_q = tl.arange(0, Q_TILE_SIZE)
+    off_k = tl.arange(0, K_TILE_SIZE)
+    off_d = tl.arange(0, D)
+    
+    # batch指针
+    Q_batch_ptr = Q_ptr + batch_idx * stride_qb
+    K_batch_ptr = K_ptr + batch_idx * stride_kb
+    V_batch_ptr = V_ptr + batch_idx * stride_vb
+    O_batch_ptr = O_ptr + batch_idx * stride_ob
+    L_batch_ptr = L_ptr + batch_idx * stride_lb
+
+    # 顶部指针 (e.g., tile 0, 1, 2...)
+    q_top_offset = query_tile_idx * Q_TILE_SIZE
+    Q_top_ptr = Q_batch_ptr + (q_top_offset + off_q[:, None]) * stride_qq + off_d[None, :] * stride_qd
+    O_top_ptr = O_batch_ptr + (q_top_offset + off_q[:, None]) * stride_oq + off_d[None, :] * stride_od
+    L_top_ptr = L_batch_ptr + (q_top_offset + off_q) * stride_lq
+    q_top_mask = (q_top_offset + off_q) < N_QUERIES
+
+    # 底部指针(e.g., tile N-1, N-2, N-3...)
+    q_bottom_offset = (TOTAL_Q_BLOCKS - 1 - query_tile_idx) * Q_TILE_SIZE
+    Q_bottom_ptr = Q_batch_ptr + (q_bottom_offset + off_q[:, None]) * stride_qq + off_d[None, :] * stride_qd
+    O_bottom_ptr = O_batch_ptr + (q_bottom_offset + off_q[:, None]) * stride_oq + off_d[None, :] * stride_od
+    L_bottom_ptr = L_batch_ptr + (q_bottom_offset + off_q) * stride_lq
+    q_bottom_mask = (q_bottom_offset + off_q) < N_QUERIES
+
+    log2e: tl.constexpr = 1.44269504
+
+    # 顶部处理
+    m_top = tl.full([Q_TILE_SIZE], float('-inf'), dtype=tl.float32)
+    l_top = tl.zeros([Q_TILE_SIZE], dtype=tl.float32)
+    acc_top = tl.zeros([Q_TILE_SIZE, D], dtype=tl.float32)
+    
+    q_top = tl.load(Q_top_ptr, mask=q_top_mask[:, None], other=0.0)
+    q_top_positions = q_top_offset + off_q
+    end_k_pos_top = (query_tile_idx + 1) * Q_TILE_SIZE
+    k_tiles_top = tl.cdiv(min(N_KEYS, end_k_pos_top), K_TILE_SIZE)
+    
+    for k_tile_idx in range(k_tiles_top):
+        k_start_pos = k_tile_idx * K_TILE_SIZE
+        offs_k_curr = k_start_pos + off_k
+        k_mask = offs_k_curr < N_KEYS
+
+        # 加载K和V
+        K_tile_ptr = K_batch_ptr + offs_k_curr[:, None] * stride_kk + off_d[None, :] * stride_kd
+        V_tile_ptr = V_batch_ptr + offs_k_curr[:, None] * stride_vk + off_d[None, :] * stride_vd
+        k = tl.load(K_tile_ptr, mask=k_mask[:, None], other=0.0)
+        v = tl.load(V_tile_ptr, mask=k_mask[:, None], other=0.0)
+
+        # 计算相关性矩阵
+        S_ij = tl.dot(q_top, tl.trans(k)) * scale
+        causal_mask = q_top_positions[:, None] >= offs_k_curr[None, :]
+        S_ij = tl.where(causal_mask, S_ij, float('-inf'))
+
+        m_curr = tl.maximum(m_top, tl.max(S_ij, axis=1))
+        P_ij = tl.math.exp2((S_ij - m_curr[:, None])*log2e)
+        
+        alpha = tl.math.exp2((m_top - m_curr)*log2e)
+        m_top = m_curr
+        l_top = alpha * l_top + tl.sum(P_ij, axis=-1)
+        acc_top = acc_top * alpha[:, None] + tl.dot(P_ij.to(DTYPE), v)
+
+    # 保存处理
+    O_top = (acc_top / (l_top[:, None] + 1e-6)).to(DTYPE)
+    L_top = (m_top + tl.math.log2(l_top)/log2e).to(DTYPE)
+    tl.store(O_top_ptr, O_top, mask=q_top_mask[:, None])
+    tl.store(L_top_ptr, L_top, mask=q_top_mask)
+
+    if query_tile_idx >= TOTAL_Q_BLOCKS - 1 - query_tile_idx:
+        return
+
+    # 底部处理
+    m_bottom = tl.full([Q_TILE_SIZE], float('-inf'), dtype=tl.float32)
+    l_bottom = tl.zeros([Q_TILE_SIZE], dtype=tl.float32)
+    acc_bottom = tl.zeros([Q_TILE_SIZE, D], dtype=tl.float32)
+    
+    q_bottom = tl.load(Q_bottom_ptr, mask=q_bottom_mask[:, None], other=0.0)
+    q_bottom_positions = q_bottom_offset + off_q
+    end_k_pos_bottom = (TOTAL_Q_BLOCKS - query_tile_idx) * Q_TILE_SIZE
+    k_tiles_bottom = tl.cdiv(min(N_KEYS, end_k_pos_bottom), K_TILE_SIZE)
+    
+    for k_tile_idx in range(k_tiles_bottom):
+        k_start_pos = k_tile_idx * K_TILE_SIZE
+        offs_k_curr = k_start_pos + off_k
+        k_mask = offs_k_curr < N_KEYS
+
+        # 加载K和V
+        K_tile_ptr = K_batch_ptr + offs_k_curr[:, None] * stride_kk + off_d[None, :] * stride_kd
+        V_tile_ptr = V_batch_ptr + offs_k_curr[:, None] * stride_vk + off_d[None, :] * stride_vd
+        k = tl.load(K_tile_ptr, mask=k_mask[:, None], other=0.0)
+        v = tl.load(V_tile_ptr, mask=k_mask[:, None], other=0.0)
+
+        # 计算相关性矩阵
+        S_ij = tl.dot(q_bottom, tl.trans(k)) * scale
+        causal_mask = q_bottom_positions[:, None] >= offs_k_curr[None, :]
+        S_ij = tl.where(causal_mask, S_ij, float('-inf'))
+
+        m_curr = tl.maximum(m_bottom, tl.max(S_ij, axis=1))
+        P_ij = tl.exp(S_ij - m_curr[:, None])
+
+        alpha = tl.math.exp2((m_bottom - m_curr)*log2e)
+        m_bottom = m_curr
+        l_bottom = alpha * l_bottom + tl.sum(P_ij, axis=-1)
+        acc_bottom = acc_bottom * alpha[:, None] + tl.dot(P_ij.to(DTYPE), v)
+
+    # 保存处理
+    O_bottom = (acc_bottom / (l_bottom[:, None] + 1e-6)).to(DTYPE)
+    L_bottom = (m_bottom + tl.math.log2(l_bottom)/log2e).to(DTYPE)
+    tl.store(O_bottom_ptr, O_bottom, mask=q_bottom_mask[:, None])
+    tl.store(L_bottom_ptr, L_bottom, mask=q_bottom_mask)
 
 @triton.jit
 def flash_bwd_preprocess(
@@ -588,9 +716,10 @@ class FlashAttentionTriton(torch.autograd.Function):
 
         batch_size, Nq, d = Q.shape
         Nk = K.size(1)
+        assert Nq == Nk
 
         # 分块大小
-        Bq = 32
+        Bq = 16
         Bk = 16
 
         Tq = (Nq + Bq - 1) // Bq
@@ -603,19 +732,38 @@ class FlashAttentionTriton(torch.autograd.Function):
         O = torch.empty_like(Q)
         L = torch.empty((batch_size, Nq), device=Q.device)
 
-        flash_fwd_kernel[(Tq, batch_size)](
-            Q, K, V,
-            O, L,
-            Q.stride(0), Q.stride(1), Q.stride(2),
-            K.stride(0), K.stride(1), K.stride(2),
-            V.stride(0), V.stride(1), V.stride(2),
-            O.stride(0), O.stride(1), O.stride(2),
-            L.stride(0), L.stride(1),
-            N_QUERIES=Nq, N_KEYS=Nk,
-            scale=scale,
-            D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal,
-            num_warps=1,  #在4060Ti上最佳
-            num_stages=3)
+        if is_causal:
+            # 在causal时flash_fwd_casual_kernel会快接近一倍
+            flash_fwd_casual_kernel[((Tq+1)//2, batch_size)](
+                Q, K, V,
+                O, L,
+                Q.stride(0), Q.stride(1), Q.stride(2),
+                K.stride(0), K.stride(1), K.stride(2),
+                V.stride(0), V.stride(1), V.stride(2),
+                O.stride(0), O.stride(1), O.stride(2),
+                L.stride(0), L.stride(1),
+                N_QUERIES=Nq, N_KEYS=Nk,
+                scale=scale,
+                D=d,
+                DTYPE=(tl.float32 if Q.dtype == torch.float32 else tl.float16), 
+                TOTAL_Q_BLOCKS=Tq,
+                Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk,
+                num_warps=1,  #
+                num_stages=3)
+        else:
+            flash_fwd_kernel[(Tq, batch_size)](
+                Q, K, V,
+                O, L,
+                Q.stride(0), Q.stride(1), Q.stride(2),
+                K.stride(0), K.stride(1), K.stride(2),
+                V.stride(0), V.stride(1), V.stride(2),
+                O.stride(0), O.stride(1), O.stride(2),
+                L.stride(0), L.stride(1),
+                N_QUERIES=Nq, N_KEYS=Nk,
+                scale=scale,
+                D=d, Q_TILE_SIZE=Bq, K_TILE_SIZE=Bk, is_causal=is_causal,
+                num_warps=1,  #在4060Ti上最佳
+                num_stages=3)
 
         ctx.save_for_backward(Q, K, V, O, L)
         ctx.is_causal = is_causal

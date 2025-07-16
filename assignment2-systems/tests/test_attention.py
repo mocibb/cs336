@@ -13,7 +13,7 @@ def _attention_and_lse(q, k, v, is_causal=False):
     n_keys = k.shape[-2]
     d = q.shape[-1]
     scale = 1 / (d ** 0.5)
-    S = einsum(q, k, '... q d, ... k d -> ... q k') * scale
+    S = einsum(q.float(), k.float(), '... q d, ... k d -> ... q k') * scale
     if is_causal:
         S = torch.where(
             torch.arange(n_queries, device=S.device)[None, :, None] >= torch.arange(n_keys, device=S.device)[None, None, :],
@@ -21,7 +21,7 @@ def _attention_and_lse(q, k, v, is_causal=False):
             -1e6
         )
     P = torch.softmax(S, dim=-1)
-    o = einsum(P, v, '... q k, ... k d -> ... q d')
+    o = einsum(P.to(v.dtype), v, '... q k, ... k d -> ... q d')
     L = torch.logsumexp(S, dim=-1)
     return o, L
 
