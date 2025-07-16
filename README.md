@@ -24,7 +24,7 @@ CS336的授课教师也给出了自己实现大模型的目的，
 
 ### [作业二](https://github.com/mocibb/cs336/blob/main/assign2.md)
 * 对实现进行基准测试和性能分析‌
-* 实现FlashAttention2算法 （**实现Triton的backward算法**）
+* 实现FlashAttention2算法 （**实现casual时负载平衡的forward算法，实现Triton的backward算法**）
 * 实现分布式数据并行训练‌
 * 实现优化器状态分片‌
 
