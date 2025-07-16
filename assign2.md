@@ -194,6 +194,7 @@ FlashAttention通过减少HBM和SRAM间内存搬运次数提高Attention的执�
 
 ### 快速FA的Trick整理
 
+- 在causal模式下考虑kernel的负载平衡，一个kernel计算Q的两行，第i行和第N-i-1行。
 - 使用两趟方案计算backward梯度，避免atomic操作的开销
 - 在casual掩码情况，按行循环时考虑提前中止提升性能
 - 区分non-masked分块和对角分块，non-masked不使用casual掩码。
