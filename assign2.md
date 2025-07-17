@@ -25,7 +25,7 @@ Triton通过MLIR编译成IR表示，然后再从IR编译成PTX，所以速度很
 <img src="https://github.com/user-attachments/assets/b7c80a1b-14c4-480c-bcfa-a65452c90434" alt="matmuls" width="500"/>
 
 
-Torch.compile优化效果很好，对于一般应用可能跟手写cuda性能相当。对想深入了解Torch.compile的同学可以[参考](https://www.youtube.com/watch?v=mG8TRTWs9Aw) 
+Torch.compile优化效果很好，对于一般应用可能跟手写cuda性能相当。对想深入了解Torch.compile的同学可以[参考](https://www.youtube.com/watch?v=mG8TRTWs9Aw) 和 [这里](https://github.com/pytorch/workshops/tree/master/ASPLOS_2024)
 
 这次作业，只要把作业中weighted_sum看懂就可以上手了。如果对Triton本身比较感兴趣，可以参考这里的[triton-resources](https://github.com/rkinas/triton-resources)
 
@@ -69,8 +69,6 @@ RTX 4060Ti的测试结果，float32为15.19TFLOPS，float16为45.70TFLOPS。
 通过英伟达最新的工具，测试带宽  https://github.com/nvidia/nvbandwidth
 
 RTX 4060Ti的测试结果，CPU-GPU拷贝约为10GB/s，而GPU-GPU拷贝约为120GB/s。
-
-
 
 GPU优化需要的基础，这部分拷贝了lecture6中slide中的推荐资料。
 
