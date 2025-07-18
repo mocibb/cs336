@@ -16,7 +16,7 @@ GPU优化主要还是通过减少对HBM访问，来提升效率。
 
 <img src="https://github.com/user-attachments/assets/5ed11434-f122-4dc5-b56c-a27b07bea1ea" alt="matmuls" width="500"/>
 
-Triton是DSL语言，编译后是PTX。Triton提供了很多高级特性，比如显存合并访问，共享内存管理‌，Sm内部调度管理和跨Sm调度管理。 
+Triton是**block-level**的DSL语言，编译后是PTX。Triton提供了很多高级特性，比如显存合并访问，共享内存管理‌，Sm内部调度管理。
 
 Triton通过MLIR编译成IR表示，然后再从IR编译成PTX，所以速度很快，值得学习。
 
