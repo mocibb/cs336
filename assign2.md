@@ -6,8 +6,8 @@
 
 了解GPU的体系架构。
 - 什么是SM（streaming multiprocessor），一个SM中有多少CUDA核心。
-- kernel中grid和block的概念。了解block内部线程和不同block间线程的区别。
-- block是通过warp在sm中调度的，GPU是SIMT架构，一个warp由32个线程组成，每个warp有自己的程序计数器和寄存器。了解什么是warp divergence。
+- kernel中grid和block的概念。了解block内部线程和不同block间线程的区别。‌同一Block内线程‌在同一个SM上调度，有相同的共享内存，可以通过__syncthreads进行同步。
+- block是通过warp在sm中调度的，一个warp由32个线程组成，每个warp有自己的程序计数器和寄存器。了解什么是warp divergence。
 - GPU的内存包括，共享内存和HBM，共享内存较少速度很快，HBM速度相对慢。相同block的线程可以访问相同的共享内存。tiling技术通过共享内存用来减少对HBM访问。
 
 **GPU优化总结**
@@ -22,10 +22,56 @@ Triton通过MLIR编译成IR表示，然后再从IR编译成PTX，所以速度很
 
 可以通过print_ptx打印Triton生成的PTX代码。
 
+```python
+
+import torch
+import os
+import triton
+import triton.language as tl
+
+@triton.jit
+def add_kernel(
+    x_ptr,
+    y_ptr,
+    output_ptr,
+    n_elements,
+    BLOCK_SIZE: tl.constexpr,
+):
+    pid = tl.program_id(axis=0)
+    block_start = pid * BLOCK_SIZE
+    offsets = block_start + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n_elements
+    x = tl.load(x_ptr + offsets)
+    y = tl.load(y_ptr + offsets)
+    output = x + y
+    tl.store(output_ptr + offsets, output, mask=mask)
+
+def print_ptx(name: str, kernel):
+    if os.environ.get("TRITON_INTERPRET") == "1":
+        print("PTX is not generated when in interpret mode.")
+        return
+    return list(kernel.cache[0].values())[0].asm["ptx"]
+
+def add(x: torch.Tensor, y: torch.Tensor):
+    output = torch.empty_like(x)
+    assert x.is_cuda and y.is_cuda and output.is_cuda
+    n_elements = output.numel()
+    grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
+    add_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=32)
+    return output
+
+x = torch.randn(128, device='cuda')
+y = torch.randn(128, device='cuda')
+print(torch.nn.functional.mse_loss(add(x, y), x+y) < 1e-10)
+ptx = print_ptx("add_kernel", add_kernel)
+print(ptx)
+
+```
+
 <img src="https://github.com/user-attachments/assets/b7c80a1b-14c4-480c-bcfa-a65452c90434" alt="matmuls" width="500"/>
 
 
-Torch.compile优化效果很好，对于一般应用可能跟手写cuda性能相当。对想深入了解Torch.compile的同学可以[参考](https://www.youtube.com/watch?v=mG8TRTWs9Aw) 和 [这里](https://github.com/pytorch/workshops/tree/master/ASPLOS_2024)
+Torch.compile优化效果很好，对于一般应用可能跟手写cuda性能相当。对想深入了解Torch.compile的同学可以参考[这里](https://www.youtube.com/watch?v=mG8TRTWs9Aw) 和 [这里](https://github.com/pytorch/workshops/tree/master/ASPLOS_2024)
 
 这次作业，只要把作业中weighted_sum看懂就可以上手了。如果对Triton本身比较感兴趣，可以参考这里的[triton-resources](https://github.com/rkinas/triton-resources)
 
