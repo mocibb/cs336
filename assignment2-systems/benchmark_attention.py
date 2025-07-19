@@ -60,7 +60,7 @@ def compare_attention_methods(seq_len, d_model, triton, warmup_steps):
             mid_time = timeit.default_timer()
             mid_memory = torch.cuda.max_memory_allocated(device) / (1024 ** 2)
 
-            # torch.sum(out, [0,1,2]).backward()
+            torch.sum(out, [0,1,2]).backward()
 
             torch.cuda.synchronize()
             end_time = timeit.default_timer()
@@ -118,11 +118,7 @@ def run_triton_benchmark():
 
 class Attention(nn.Module):
     def forward(self, Q, K, V, is_causal):
-        _, Nq, d = Q.shape
-        scale = 1 / (d ** 0.5)
-        P = einsum(Q, K, "... q d, ... k d -> ... q k")
-        kv =  einsum(K, V, "... k d1, ... k d2 -> ... d1 d2")
-        return einsum(Q, kv, "... q d, ... d1 d2 -> ... q d2")
+        return scaled_dot_product_attention(Q, K, V)
     
 if __name__ == "__main__":
     run_triton_benchmark()

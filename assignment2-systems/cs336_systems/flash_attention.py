@@ -801,7 +801,7 @@ def flash_bwd_dkdv_casual_kernel(
     v_top = tl.load(V_top_ptr, mask=k_top_mask[:, None], other=0.0).to(tl.float32)
 
     # 当前是第k行，end_q_pos_bottom是所有比当前k大的行
-    q_start_top = tl.cdiv(key_tile_index * K_TILE_SIZE, Q_TILE_SIZE)
+    q_start_top = (key_tile_index * K_TILE_SIZE) // Q_TILE_SIZE
     q_tiles_top = tl.cdiv(N_QUERIES, Q_TILE_SIZE)
 
     # 外循环为按照K的行，内循环为按照Q的行 
@@ -856,7 +856,7 @@ def flash_bwd_dkdv_casual_kernel(
     k_bottom = tl.load(K_bottom_ptr, mask=k_bottom_mask[:, None], other=0.0).to(tl.float32)
     v_bottom = tl.load(V_bottom_ptr, mask=k_bottom_mask[:, None], other=0.0).to(tl.float32)
 
-    q_start_bottom = tl.cdiv((TOTAL_K_BLOCKS- 1 - key_tile_index) * K_TILE_SIZE, Q_TILE_SIZE)
+    q_start_bottom = ((TOTAL_K_BLOCKS- 1 - key_tile_index) * K_TILE_SIZE) // Q_TILE_SIZE
     q_tiles_bottom = tl.cdiv(N_QUERIES, Q_TILE_SIZE)
 
     # 外循环为按照K的行，内循环为按照Q的行 
@@ -901,7 +901,7 @@ class FlashAttentionTriton(torch.autograd.Function):
         assert Nq == Nk
 
         # 分块大小
-        Bq = 32
+        Bq = 16
         Bk = 16
 
         Tq = (Nq + Bq - 1) // Bq
