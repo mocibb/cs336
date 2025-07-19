@@ -444,10 +444,8 @@ def flash_bwd_dq_kernel(
         P_ij = tl.exp(S_ij - L_tile[:, None])
 
         # 计算dV, dP, dS, dK, dQ
-        dV = tl.dot(tl.trans(P_ij), dO_tile)
         dP = tl.dot(dO_tile, tl.trans(V_tile))
         dS = P_ij * (dP - D_tile[:, None])
-        dK = tl.dot(tl.trans(dS), Q_tile) * scale
         dQ += tl.dot(dS, K_tile) * scale
         
         # 原子地将计算出的dV和dK加到全局内存中
@@ -566,8 +564,8 @@ def flash_bwd_dkdv_kernel(
         order=(1, 0),
     )
 
-    K_tile = tl.load(K_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
-    V_tile = tl.load(V_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
+    K_tile = tl.load(K_block_ptr, boundary_check=(0,), padding_option="zero")
+    V_tile = tl.load(V_block_ptr, boundary_check=(0,), padding_option="zero")
 
     # 初始化 dK 和 dV 
     dK = tl.zeros((K_TILE_SIZE, D), dtype=tl.float32)
@@ -580,8 +578,8 @@ def flash_bwd_dkdv_kernel(
     
     for j in range(n_q_tiles):
         # 读取Q, dO, L, D
-        Q_tile = tl.load(Q_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
-        dO_tile = tl.load(dO_block_ptr, boundary_check=(0,), padding_option="zero").to(tl.float32)
+        Q_tile = tl.load(Q_block_ptr, boundary_check=(0,), padding_option="zero")
+        dO_tile = tl.load(dO_block_ptr, boundary_check=(0,), padding_option="zero")
         L_tile = tl.load(L_block_ptr, boundary_check=(0,), padding_option="zero")
         D_tile = tl.load(D_block_ptr, boundary_check=(0,), padding_option="zero")
 
@@ -596,9 +594,9 @@ def flash_bwd_dkdv_kernel(
         P_ij = tl.exp(S_ij - L_tile[:, None])
             
         # 计算dV, dP, dS, dK, dQ
-        dV += tl.dot(tl.trans(P_ij), dO_tile)
+        dV += tl.dot(tl.trans(P_ij).to(dO_block_ptr.type.element_ty), dO_tile)
         dP = tl.dot(dO_tile, tl.trans(V_tile))
-        dS = P_ij * (dP - D_tile[:, None])
+        dS = (P_ij * (dP - D_tile[:, None])).to(Q_block_ptr.type.element_ty)
         dK += tl.dot(tl.trans(dS), Q_tile) * scale
         
         # 移动指针到下一个块
@@ -797,8 +795,8 @@ def flash_bwd_dkdv_casual_kernel(
     dV_top_ptr = dV_batch_ptr + offs_k_top[:, None] * stride_dvk + off_d[None, :] * stride_dvd
     k_top_mask = offs_k_top < N_KEYS
 
-    k_top = tl.load(K_top_ptr, mask=k_top_mask[:, None], other=0.0).to(tl.float32)
-    v_top = tl.load(V_top_ptr, mask=k_top_mask[:, None], other=0.0).to(tl.float32)
+    k_top = tl.load(K_top_ptr, mask=k_top_mask[:, None], other=0.0)
+    v_top = tl.load(V_top_ptr, mask=k_top_mask[:, None], other=0.0)
 
     # 当前是第k行，end_q_pos_bottom是所有比当前k大的行
     q_start_top = (key_tile_index * K_TILE_SIZE) // Q_TILE_SIZE
@@ -816,8 +814,8 @@ def flash_bwd_dkdv_casual_kernel(
         L_tile_ptr = L_batch_ptr + offs_q_curr * stride_lq
         D_tile_ptr = D_batch_ptr + offs_q_curr * stride_dq
 
-        q = tl.load(Q_tile_ptr, mask=q_mask[:, None], other=0.0).to(tl.float32)
-        dO = tl.load(dO_tile_ptr, mask=q_mask[:, None], other=0.0).to(tl.float32)
+        q = tl.load(Q_tile_ptr, mask=q_mask[:, None], other=0.0)
+        dO = tl.load(dO_tile_ptr, mask=q_mask[:, None], other=0.0)
         l = tl.load(L_tile_ptr, mask=q_mask, other=0.0)
         d = tl.load(D_tile_ptr, mask=q_mask, other=0.0)
 
@@ -828,10 +826,10 @@ def flash_bwd_dkdv_casual_kernel(
         P_ij = tl.exp(S_ij - l[:, None])
     
         # 计算dV, dP, dS, dK, dQ
-        dV += tl.dot(tl.trans(P_ij), dO)
+        dV += tl.dot(tl.trans(P_ij).to(DTYPE), dO)
         dP = tl.dot(dO, tl.trans(v_top))
-        dS = P_ij * (dP - d[:, None])
-        dK += tl.dot(tl.trans(dS), q) * scale
+        dS = (P_ij * (dP - d[:, None])).to(DTYPE)
+        dK += tl.dot(tl.trans(dS), q)* scale
 
     # 保存dK和dV
     tl.store(dK_top_ptr, dK.to(DTYPE), mask=k_top_mask[:, None])
@@ -853,8 +851,8 @@ def flash_bwd_dkdv_casual_kernel(
     dV_bottom_ptr = dV_batch_ptr + offs_k_bottom[:, None] * stride_dvk + off_d[None, :] * stride_dvd
     k_bottom_mask = offs_k_bottom < N_KEYS
 
-    k_bottom = tl.load(K_bottom_ptr, mask=k_bottom_mask[:, None], other=0.0).to(tl.float32)
-    v_bottom = tl.load(V_bottom_ptr, mask=k_bottom_mask[:, None], other=0.0).to(tl.float32)
+    k_bottom = tl.load(K_bottom_ptr, mask=k_bottom_mask[:, None], other=0.0)
+    v_bottom = tl.load(V_bottom_ptr, mask=k_bottom_mask[:, None], other=0.0)
 
     q_start_bottom = ((TOTAL_K_BLOCKS- 1 - key_tile_index) * K_TILE_SIZE) // Q_TILE_SIZE
     q_tiles_bottom = tl.cdiv(N_QUERIES, Q_TILE_SIZE)
@@ -871,8 +869,8 @@ def flash_bwd_dkdv_casual_kernel(
         L_tile_ptr = L_batch_ptr + offs_q_curr * stride_lq
         D_tile_ptr = D_batch_ptr + offs_q_curr * stride_dq
 
-        q = tl.load(Q_tile_ptr, mask=q_mask[:, None], other=0.0).to(tl.float32)
-        dO = tl.load(dO_tile_ptr, mask=q_mask[:, None], other=0.0).to(tl.float32)
+        q = tl.load(Q_tile_ptr, mask=q_mask[:, None], other=0.0)
+        dO = tl.load(dO_tile_ptr, mask=q_mask[:, None], other=0.0)
         l = tl.load(L_tile_ptr, mask=q_mask, other=0.0)
         d = tl.load(D_tile_ptr, mask=q_mask, other=0.0)
 
@@ -883,9 +881,9 @@ def flash_bwd_dkdv_casual_kernel(
         P_ij = tl.exp(S_ij - l[:, None])
     
         # 计算dV, dP, dS, dK, dQ
-        dV += tl.dot(tl.trans(P_ij), dO)
+        dV += tl.dot(tl.trans(P_ij).to(DTYPE), dO)
         dP = tl.dot(dO, tl.trans(v_bottom))
-        dS = P_ij * (dP - d[:, None])
+        dS = (P_ij * (dP - d[:, None])).to(DTYPE)
         dK += tl.dot(tl.trans(dS), q) * scale
 
     # 保存dK和dV
