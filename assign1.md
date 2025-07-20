@@ -109,6 +109,8 @@ post-norm要比pre-norm更难训练，post-norm往往需要加入预热处理。
 
 ### Gating, activations
 
+
+
 ### RoPE
 
 嵌入可以看成 $f(x, i)$ ，这里x是token，i是token的位置。
@@ -135,8 +137,6 @@ R_1^i & 0 & 0 & \cdots & 0 \\
 即，
 
 $\langle f(x, i), g(y, j) \rangle = x^{\top} R^{j-i} Q^t R y = \langle f(x, i+1), g(y, j+1) \rangle$
-
-
 
 ### Hyperparameters
 
@@ -175,6 +175,14 @@ $\ell(\theta ; D)=-\frac{1}{|D|} \sum_{x \in D} \log p_\theta\left(x_{i+1} = \ha
 > 
 > 如果数据集较小可以使用full batch更新的话建议尝试L-BFGS算法。
 
+
+### 关于深度学习Loss曲面
+
+《Visualizing the Loss Landscape of Neural Nets》
+
+《Sharpness-Aware Minimization for Efficiently Improving Generalization》
+
+《Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning》
 
 ### AdamW
 
